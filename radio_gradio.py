@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from acestep.pipeline_ace_step import ACEStepPipeline
 import librosa
-import ollama
 
 
 # Constants and Configuration
@@ -750,6 +749,7 @@ class AIRadioStation:
                     if self.llm:  # Check if load was successful
                         print(f"Using LLM for lyric generation (attempt {retry_count + 1}/{max_retries + 1})...")
                         if self.ollama:
+                            import ollama
                             output = ollama.chat(
                                 model=self.llm_model_path,
                                 messages=[

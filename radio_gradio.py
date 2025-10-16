@@ -1246,7 +1246,7 @@ class AIRadioStation:
         self._save_state()
 
 
-    def generate_song(self, genre: str, theme: str, duration: float = 120.0, 
+    def generate_song(self, genre: str, theme: str, duration: float = 140.0, 
                     tempo: Optional[int] = None, intensity: Optional[str] = None,
                     mood: Optional[str] = None, language: Optional[str] = None) -> Song:
         """
@@ -1422,7 +1422,6 @@ def create_radio_interface(radio: AIRadioStation):
                 autoplay=True if radio.state == RadioState.PLAYING else False,
                 waveform_options={
                     'sample_rate': 44100,  # Adjust if your audio uses different sample rate
-                    'show_controls': True,
                 }
             )
 
@@ -1618,7 +1617,7 @@ def create_radio_interface(radio: AIRadioStation):
                             value="summer love",
                             label="Station Theme"
                         )
-                        duration_input = gr.Slider(30, 600, value=120, label="Song Duration (seconds)")
+                        duration_input = gr.Slider(30, 600, value=140, label="Song Duration (seconds)")
                         buffer_size = gr.Slider(1, 10, value=1, step=1, label="Buffer Size (songs)")
                         random_mode = gr.Checkbox(label="Continuous Random Mode (after the first song)", value=True)
                         random_languages = gr.Checkbox(label="Randomize Languages (after the first song)", value=False)
@@ -1678,14 +1677,13 @@ def create_radio_interface(radio: AIRadioStation):
                 # Now Playing Display
                 with gr.Group():
                     current_song_output = gr.Audio(
-                    label="Now Playing",
-                    interactive=False,
-                    autoplay=True,
-                    visible=True,
-                    waveform_options={
-                    'sample_rate': 44100,  # Or your actual sample rate
-                    'show_controls': True,
-                    }
+                        label="Now Playing",
+                        interactive=False,
+                        autoplay=True,
+                        visible=True,
+                        waveform_options={
+                            'sample_rate': 44100,  # Or your actual sample rate
+                        }
                     )
                     with gr.Tabs():
                         with gr.TabItem("Lyrics"):

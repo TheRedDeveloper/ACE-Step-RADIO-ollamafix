@@ -238,17 +238,19 @@ class StationIdentity:
         return cls(name, slogan)
 
 class AIRadioStation:
-    def __init__(self, ace_step_pipeline: ACEStepPipeline, model_path: str = "gemma-3-12b-it-abliterated.q4_k_m"):
+    def __init__(self, ace_step_pipeline: ACEStepPipeline, model_path: str = "gemma-3-12b-it-abliterated.q4_k_m", ollama: bool = False):
         """
         Initialize the AI Radio Station with continuous generation.
         
         Args:
             ace_step_pipeline: Initialized ACEStepPipeline for music generation
             model_path: Path to LLM model for lyric generation
+            ollama: Whether to use Ollama for lyric generation (default: False)
         """
         self._pipeline = ace_step_pipeline  # Store the original pipeline reference
         self.random_mode = False 
         self.llm_model_path = model_path
+        self.ollama = ollama
         self.llm = None
         self._first_play = True  
         self.pipeline_args = {
@@ -286,26 +288,30 @@ class AIRadioStation:
         self.unload_llm()
         gc.collect()
         if self.llm is None:
-            print("Loading LLM model...")
-            try:
-                from llama_cpp import Llama
-                self.llm = Llama(
-                    model_path=self.llm_model_path,
-                    n_ctx=2048,
-                    n_threads=4,
-                    n_gpu_layers=-1,
-                    seed = -1 # random seed for random lyrics 
+            if self.ollama:
+                self.llm = True
+            else:
+                print("Loading LLM model...")
+                try:
+                    from llama_cpp import Llama
+                    self.llm = Llama(
+                        model_path=self.llm_model_path,
+                        n_ctx=2048,
+                        n_threads=4,
+                        n_gpu_layers=-1,
+                        seed = -1 # random seed for random lyrics
 
-                )
-            except ImportError:
-                print("Warning: llama-cpp-python not installed, using simple lyric generation")
-                self.llm = None
+                    )
+                except ImportError:
+                    print("Warning: llama-cpp-python not installed, using simple lyric generation")
+                    self.llm = None
 
     def unload_llm(self):
         """Unload the LLM model from memory"""
         if self.llm is not None:
-            print("Unloading LLM model...")
-            del self.llm
+            if not self.ollama:
+                print("Unloading LLM model...")
+                del self.llm
             self.llm = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -742,18 +748,31 @@ class AIRadioStation:
                     
                     if self.llm:  # Check if load was successful
                         print(f"Using LLM for lyric generation (attempt {retry_count + 1}/{max_retries + 1})...")
-                        output = self.llm(
-                            prompt,
-                            max_tokens=700,
-                            temperature=0.7,
-                            top_p=0.9,
-                            repeat_penalty=1.1,
-                            stop=["[End]", "\n\n\n"],
-                            echo=False,
-                            seed=-1
-                        )
-                        
-                        lyrics = output["choices"][0]["text"].strip()
+                        if self.ollama:
+                            import ollama
+                            output = ollama.chat(
+                                model=self.llm_model_path,
+                                messages=[
+                                    {
+                                        'role': 'user',
+                                        'content': prompt,
+                                    },
+                                ]
+                            )
+                            lyrics = output.message.content.strip()
+                        else:
+                            output = self.llm(
+                                prompt,
+                                max_tokens=700,
+                                temperature=0.7,
+                                top_p=0.9,
+                                repeat_penalty=1.1,
+                                stop=["[End]", "\n\n\n"],
+                                echo=False,
+                                seed=-1
+                            )
+                            lyrics = output["choices"][0]["text"].strip()
+
                         print(f"Generated lyrics:\n{lyrics}")
                         
                         # Validate lyrics quality
@@ -1134,19 +1153,31 @@ def create_radio_interface(radio: AIRadioStation):
     def start_radio(genre, theme, duration, buff_size, model_path, language, max_history, tempo, intensity, mood, random_mode, random_languages):
         """Start the radio with the specified parameters"""
         # Update model if changed
-        if model_path and hasattr(radio, 'llm') and radio.llm and model_path != radio.llm.model_path:
-            try:
-                from llama_cpp import Llama
-                radio.llm = Llama(
-                    model_path=model_path,
-                    n_ctx=2048,
-                    n_threads=4,
-                    n_gpu_layers=-1,
-                    seed = -1 # random seed for random lyrics 
-                )
-                print(f"Loaded new LLM model from: {model_path}")
-            except Exception as e:
-                print(f"Failed to load new LLM model: {e}")
+        if model_path:
+            # Handle file object from gr.File (non-Ollama mode)
+            if hasattr(model_path, 'name'):
+                model_path = model_path.name
+            
+            # Update LLM model if changed
+            if hasattr(radio, 'llm') and radio.llm and not radio.ollama:
+                try:
+                    from llama_cpp import Llama
+                    if model_path != radio.llm_model_path:
+                        radio.llm_model_path = model_path
+                        radio.llm = Llama(
+                            model_path=model_path,
+                            n_ctx=2048,
+                            n_threads=4,
+                            n_gpu_layers=-1,
+                            seed = -1 # random seed for random lyrics 
+                        )
+                        print(f"Loaded new LLM model from: {model_path}")
+                except Exception as e:
+                    print(f"Failed to load new LLM model: {e}")
+            elif radio.ollama:
+                # For Ollama, just update the model name
+                radio.llm_model_path = model_path
+                print(f"Using Ollama model: {model_path}")
         
         # Convert duration to float explicitly
         duration = float(duration)
@@ -1183,7 +1214,7 @@ def create_radio_interface(radio: AIRadioStation):
         intensity = random.choice(["soft", "medium", "high"])
         mood = random.choice(["happy", "sad", "reflective", "upbeat", "chill"])
         
-        current_model_path = radio.llm.model_path if hasattr(radio, 'llm') and radio.llm else "gemma-3-12b-it-abliterated.q4_k_m.gguf"
+        current_model_path = radio.llm_model_path if radio.llm_model_path else ""
         
         return (
             genre, theme, current_model_path, language, tempo, intensity, mood,
@@ -1239,7 +1270,9 @@ def create_radio_interface(radio: AIRadioStation):
     ) as demo:
         gr.Markdown("# 🎵 AI Radio Station")
         gr.Markdown("Continuous AI-powered music generation using ACE")
-        
+        if radio.ollama:
+            gr.Markdown("#### Ollama Model for Lyric Generation: `" + radio.llm_model_path + "`")
+
         # Add a timer component for automatic updates
         timer = gr.Timer(0.5, active=True)
         
@@ -1262,12 +1295,19 @@ def create_radio_interface(radio: AIRadioStation):
                         buffer_size = gr.Slider(1, 10, value=1, step=1, label="Buffer Size (songs)")
                         random_mode = gr.Checkbox(label="Continuous Random Mode (after the first song)", value=True)
                         random_languages = gr.Checkbox(label="Randomize Languages (after the first song)", value=False)
-                        model_path_input = gr.File(
-                            label="GGUF Model File",
-                            file_types=[".gguf"],
-                            value="gemma-3-12b-it-abliterated.q4_k_m.gguf"
-                        )
-                    
+                        if radio.ollama:
+                            model_path_input = gr.Textbox(
+                                label="Ollama Model Name",
+                                value=radio.llm_model_path,
+                                placeholder="e.g., gemma3:12b-it-q4_K_M"
+                            )
+                        else:
+                            model_path_input = gr.File(
+                                label="GGUF Model File",
+                                file_types=[".gguf"],
+                                value="gemma-3-12b-it-abliterated.q4_k_m.gguf"
+                            )
+
                     with gr.Tab("Advanced Settings"):
                         language_input = gr.Dropdown(
                             choices=list(SUPPORTED_LANGUAGES.keys()),
@@ -1413,6 +1453,8 @@ def main():
                        help="Use bfloat16 precision")
     parser.add_argument("--torch_compile", default=False,
                        help="Enable torch compilation for faster inference")
+    parser.add_argument("--ollama", default=False,
+                       help="Enable Ollama for lyric generation")
     args = parser.parse_args()
     
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
@@ -1430,7 +1472,8 @@ def main():
     print("Initializing AI Radio Station...")
     radio = AIRadioStation(
         ace_step_pipeline=pipeline,
-        model_path=args.model_path
+        model_path=args.model_path,
+        ollama=args.ollama
     )
     
     # Create and launch interface

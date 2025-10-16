@@ -1153,19 +1153,31 @@ def create_radio_interface(radio: AIRadioStation):
     def start_radio(genre, theme, duration, buff_size, model_path, language, max_history, tempo, intensity, mood, random_mode, random_languages):
         """Start the radio with the specified parameters"""
         # Update model if changed
-        if model_path and hasattr(radio, 'llm') and radio.llm and model_path != radio.llm.model_path:
-            try:
-                from llama_cpp import Llama
-                radio.llm = Llama(
-                    model_path=model_path,
-                    n_ctx=2048,
-                    n_threads=4,
-                    n_gpu_layers=-1,
-                    seed = -1 # random seed for random lyrics 
-                )
-                print(f"Loaded new LLM model from: {model_path}")
-            except Exception as e:
-                print(f"Failed to load new LLM model: {e}")
+        if model_path:
+            # Handle file object from gr.File (non-Ollama mode)
+            if hasattr(model_path, 'name'):
+                model_path = model_path.name
+            
+            # Update LLM model if changed
+            if hasattr(radio, 'llm') and radio.llm and not radio.ollama:
+                try:
+                    from llama_cpp import Llama
+                    if model_path != radio.llm_model_path:
+                        radio.llm_model_path = model_path
+                        radio.llm = Llama(
+                            model_path=model_path,
+                            n_ctx=2048,
+                            n_threads=4,
+                            n_gpu_layers=-1,
+                            seed = -1 # random seed for random lyrics 
+                        )
+                        print(f"Loaded new LLM model from: {model_path}")
+                except Exception as e:
+                    print(f"Failed to load new LLM model: {e}")
+            elif radio.ollama:
+                # For Ollama, just update the model name
+                radio.llm_model_path = model_path
+                print(f"Using Ollama model: {model_path}")
         
         # Convert duration to float explicitly
         duration = float(duration)
@@ -1202,7 +1214,7 @@ def create_radio_interface(radio: AIRadioStation):
         intensity = random.choice(["soft", "medium", "high"])
         mood = random.choice(["happy", "sad", "reflective", "upbeat", "chill"])
         
-        current_model_path = radio.llm.model_path if hasattr(radio, 'llm') and radio.llm else "gemma-3-12b-it-abliterated.q4_k_m.gguf"
+        current_model_path = radio.llm_model_path if radio.llm_model_path else ""
         
         return (
             genre, theme, current_model_path, language, tempo, intensity, mood,
@@ -1284,10 +1296,10 @@ def create_radio_interface(radio: AIRadioStation):
                         random_mode = gr.Checkbox(label="Continuous Random Mode (after the first song)", value=True)
                         random_languages = gr.Checkbox(label="Randomize Languages (after the first song)", value=False)
                         if radio.ollama:
-                            model_path_input = gr.File(
-                                label="GGUF Model File (Ollama model used instead)",
-                                file_types=[".gguf"],
-                                value="gemma-3-12b-it-abliterated.q4_k_m.gguf"
+                            model_path_input = gr.Textbox(
+                                label="Ollama Model Name",
+                                value=radio.llm_model_path,
+                                placeholder="e.g., gemma3:12b-it-q4_K_M"
                             )
                         else:
                             model_path_input = gr.File(

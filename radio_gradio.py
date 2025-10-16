@@ -561,9 +561,9 @@ class AIRadioStation:
             return "reflective"
         return "upbeat"
 
-    def generate_lyrics_and_prompt(self, genre: str, theme: str, language: str = "English") -> Tuple[str, str]:
+    def generate_lyrics_and_prompt(self, genre: str, theme: str, duration: float, language: str = "English") -> Tuple[str, str]:
         """Generate song lyrics with genre-specific structures and retry logic"""
-        structures = {
+        long_structures = {
             "country": (
                 "[Steel Guitar Intro]\n\n"
                 "[Verse 1] (storytelling)\n{lyrics}\n\n"
@@ -681,8 +681,325 @@ class AIRadioStation:
             )
         }
 
+        medium_structures = {
+            "country": (
+                "[Steel Guitar Intro]\n\n"
+                "[Verse 1] (storytelling)\n{lyrics}\n\n"
+                "[Chorus] (big melody)\n{lyrics}\n\n"
+                "[Verse 2] (develop story)\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bridge] (emotional peak)\n{lyrics}\n\n"
+                "[Final Chorus]"
+            ),
+            "pop": (
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Pre-Chorus]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Chorus] (final)"
+            ),
+            "rock": (
+                "[Guitar Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Guitar Solo] (4-8 bars)\n\n"
+                "[Final Chorus]"
+            ),
+            "hip hop": (
+                "[Intro Hook]\n{lyrics}\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Outro]"
+            ),
+            "electronic": (
+                "[Build-Up] (8 bars)\n{lyrics}\n\n"
+                "[Drop]\n{lyrics}\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (final)"
+            ),
+            "lofi": (
+                "[Ambient Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chill Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chill Chorus]\n{lyrics}\n\n"
+                "[Outro] (fade)"
+            ),
+            "jazz": (
+                "[Piano Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Swing Chorus]\n{lyrics}\n\n"
+                "[Sax Solo] (8 bars)\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Swing Chorus]"
+            ),
+            "classical": (
+                "[Introduction]\n\n"
+                "[Theme A]\n{lyrics}\n\n"
+                "[Theme B]\n{lyrics}\n\n"
+                "[Development]\n{lyrics}\n\n"
+                "[Recapitulation]\n{lyrics}"
+            ),
+            "ambient": (
+                "[Textural Intro]\n\n"
+                "[Drone Section]\n{lyrics}\n\n"
+                "[Modulation]\n{lyrics}\n\n"
+                "[Resolution]\n{lyrics}\n\n"
+                "[Fade Out]"
+            ),
+            "metal": (
+                "[Heavy Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Guitar Solo] (8 bars)\n\n"
+                "[Final Chorus]"
+            ),
+            "death metal": (
+                "[Blast Intro]\n\n"
+                "[Verse 1] (growled)\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Breakdown]\n\n"
+                "[Final Blast]"
+            ),
+            "doom metal": (
+                "[Slow Heavy Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (crushing)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Outro] (fade)"
+            ),
+            "reggae": (
+                "[Skank Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (call-response)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Dub Break] (8 bars)\n\n"
+                "[Final Chorus]"
+            ),
+            "dub": (
+                "[Echo Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Dub Section]\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Extended Dub]\n\n"
+                "[Outro] (echo fade)"
+            ),
+            "blues": (
+                "[Guitar Lick Intro]\n\n"
+                "[Verse 1] (12-bar)\n{lyrics}\n\n"
+                "[Response] (guitar)\n\n"
+                "[Verse 2] (12-bar)\n{lyrics}\n\n"
+                "[Harmonica Solo] (8 bars)\n\n"
+                "[Verse 3]\n{lyrics}\n\n"
+                "[Outro]"
+            ),
+            "delta blues": (
+                "[Acoustic Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Slide Guitar Response]\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Instrumental Break]\n\n"
+                "[Verse 3]\n{lyrics}\n\n"
+                "[Outro]"
+            ),
+            "funk": (
+                "[Groove Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bass Break] (4 bars)\n\n"
+                "[Chorus] (vamp out)"
+            ),
+            "disco": (
+                "[Four-on-Floor Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[String Break] (4 bars)\n\n"
+                "[Final Chorus]"
+            ),
+            "punk": (
+                "[Fast Intro] (4 bars)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (shout it)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Chorus]"
+            ),
+            "default": (
+                "[Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Chorus]"
+            )
+        }
+
+        short_structures = {
+            "country": (
+                "[Steel Guitar Intro]\n\n"
+                "[Verse 1] (storytelling)\n{lyrics}\n\n"
+                "[Chorus] (big melody)\n{lyrics}\n\n"
+                "[Verse 2] (develop story)\n{lyrics}\n\n"
+                "[Chorus] (big finish)"
+            ),
+            "pop": (
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Pre-Chorus]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (with ad-libs)"
+            ),
+            "rock": (
+                "[Guitar Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Guitar Solo] (4 bars)\n\n"
+                "[Chorus] (big finish)"
+            ),
+            "hip hop": (
+                "[Intro Hook]\n{lyrics}\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Hook]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Outro Hook]"
+            ),
+            "electronic": (
+                "[Build-Up] (8 bars)\n{lyrics}\n\n"
+                "[Drop]\n{lyrics}\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Drop] (final)"
+            ),
+            "lofi": (
+                "[Ambient Intro] (with vinyl noise)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chill Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Outro] (fade)"
+            ),
+            "jazz": (
+                "[Piano Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Swing Chorus]\n{lyrics}\n\n"
+                "[Brief Solo] (4 bars)\n\n"
+                "[Outro]"
+            ),
+            "classical": (
+                "[Introduction]\n\n"
+                "[Theme A]\n{lyrics}\n\n"
+                "[Theme B]\n{lyrics}\n\n"
+                "[Recapitulation]\n{lyrics}"
+            ),
+            "ambient": (
+                "[Textural Intro]\n\n"
+                "[Main Section]\n{lyrics}\n\n"
+                "[Fade Out]"
+            ),
+            "metal": (
+                "[Heavy Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Breakdown] (4 bars)\n\n"
+                "[Final Chorus]"
+            ),
+            "death metal": (
+                "[Blast Intro]\n\n"
+                "[Verse 1] (growled)\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Breakdown]\n\n"
+                "[Final Blast]"
+            ),
+            "doom metal": (
+                "[Slow Heavy Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (crushing)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Outro] (fade)"
+            ),
+            "reggae": (
+                "[Skank Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (call-response)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (with harmonies)"
+            ),
+            "dub": (
+                "[Echo Intro]\n\n"
+                "[Verse]\n{lyrics}\n\n"
+                "[Dub Section] (instrumental)\n\n"
+                "[Outro] (echo fade)"
+            ),
+            "blues": (
+                "[Guitar Lick Intro]\n\n"
+                "[Verse 1] (12-bar)\n{lyrics}\n\n"
+                "[Response] (guitar)\n\n"
+                "[Verse 2] (12-bar)\n{lyrics}\n\n"
+                "[Outro]"
+            ),
+            "delta blues": (
+                "[Acoustic Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Slide Guitar Response]\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Outro] (fade)"
+            ),
+            "funk": (
+                "[Groove Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (tight groove)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (vamp out)"
+            ),
+            "disco": (
+                "[Four-on-Floor Intro]\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (danceable)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (with strings)"
+            ),
+            "punk": (
+                "[Fast Intro] (4 bars)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus] (shout it)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (fast finish)"
+            ),
+            "default": (
+                "[Intro]\n{lyrics}\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus] (variation)\n\n"
+                "[Outro]"
+            )
+        }
+
+        if duration >= 180:
+            structures = long_structures
+        elif duration >= 120:
+            structures = medium_structures
+        else:
+            structures = short_structures
         structure = structures.get(genre.lower(), structures["default"])
-        
+
         prompt_addons = {
             "pop": "radio-ready, catchy hooks, polished production",
             "rock": "electric guitars, driving drums, raw energy",
@@ -722,13 +1039,15 @@ class AIRadioStation:
             "2. Use ONLY the specified language: {language}\n"
             "3. Follow the structure EXACTLY as shown\n"
             "4. Format each section header exactly as shown (e.g. [Verse 1])\n"
-            "5. Never include any text outside the lyrics structure\n\n"
+            f"5. The music must be no longer than {int(duration)}s so {int(duration * 1.2)} to {int(duration * 1.3)} words.\n"
+            f"6. DO NOT surpass {int(duration * 1.3)} words. DO NOT fail to meet {int(duration * 1.2)} words. Keep to about {int(duration * 1.25 / structure.count('{lyrics}'))} words per section.\n"
+            "7. Never include any text outside the lyrics structure\n\n"
             "STYLE GUIDELINES:\n"
             f"- {prompt_addons.get(genre.lower(), prompt_addons['default'])}\n"
             f"- {intensity_modifiers.get(self.intensity, intensity_modifiers['medium'])} feel\n"
             f"- {mood_modifiers.get(self.mood, mood_modifiers['upbeat'])} mood\n"
             "- Use vivid imagery and emotional resonance\n"
-            "- Match the rhythm and phrasing to {genre} conventions\n"
+            f"- Match the rhythm and phrasing to {genre} conventions\n"
             f"{'- Incorporate country idioms and themes' if genre.lower() == 'country' else ''}"
             f"{'- Use rap flow patterns and urban vocabulary' if genre.lower() == 'hip hop' else ''}\n\n"
         )
@@ -757,9 +1076,12 @@ class AIRadioStation:
                                         'role': 'user',
                                         'content': prompt,
                                     },
-                                ]
+                                ],
+                                keep_alive=0
                             )
-                            lyrics = output.message.content.strip()
+                            raw = output.message.content if hasattr(output, "message") else output
+                            text = raw.strip() if isinstance(raw, str) else str(raw)
+                            lyrics = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL | re.IGNORECASE).strip()
                         else:
                             output = self.llm(
                                 prompt,
@@ -961,7 +1283,7 @@ class AIRadioStation:
             self.clean_all_memory()
             print("\n[1/3] Generating lyrics...")
             self.generation_progress = 0.33
-            lyrics, music_prompt = self.generate_lyrics_and_prompt(genre, theme, language)
+            lyrics, music_prompt = self.generate_lyrics_and_prompt(genre, theme, duration, language)
             self.clean_all_memory()
             
             # Stage 2: Generate music
@@ -986,6 +1308,11 @@ class AIRadioStation:
                         omega_scale=10.0,
                         batch_size=1
                     )
+                
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                gc.collect()
                 
                 audio_path = results[0]
                 metadata = results[-1]
@@ -1305,7 +1632,7 @@ def create_radio_interface(radio: AIRadioStation):
                             model_path_input = gr.File(
                                 label="GGUF Model File",
                                 file_types=[".gguf"],
-                                value="gemma-3-12b-it-abliterated.q4_k_m.gguf"
+                                value=None
                             )
 
                     with gr.Tab("Advanced Settings"):
@@ -1447,13 +1774,13 @@ def main():
                        help="Port to run the server on")
     parser.add_argument("--device_id", type=int, default=0,
                        help="GPU device ID to use")
-    parser.add_argument("--share", default=False,
+    parser.add_argument("--share", action="store_true",
                        help="Share the Gradio interface publicly")
-    parser.add_argument("--bf16", default=True,
+    parser.add_argument("--bf16", action="store_true", default=True,
                        help="Use bfloat16 precision")
-    parser.add_argument("--torch_compile", default=False,
+    parser.add_argument("--torch_compile", action="store_true",
                        help="Enable torch compilation for faster inference")
-    parser.add_argument("--ollama", default=False,
+    parser.add_argument("--ollama", action="store_true",
                        help="Enable Ollama for lyric generation")
     args = parser.parse_args()
     

@@ -388,7 +388,6 @@ class AIRadioStation:
                 # Find the JSON block in Ollama's output
                 match = re.search(r'```json\s*(\{[^\}]*\})\s*```', output['response'], re.DOTALL)
                 if not match:
-                    print("⚠️  No valid JSON found in Ollama response.")
                     continue
 
                 json_str = match.group(1)
@@ -398,11 +397,9 @@ class AIRadioStation:
                     required_keys = {"action", "genre", "theme", "tempo", "intensity", "mood"}
                     # Check for missing keys
                     if not required_keys.issubset(params.keys()):
-                        print("⚠️  Missing required keys in Ollama response.")
                         continue
                     # Check for extra keys
                     if set(params.keys()) != required_keys:
-                        print("⚠️  Extra or missing keys in Ollama response.")
                         continue
                     # Check types
                     if not (
@@ -413,29 +410,22 @@ class AIRadioStation:
                         isinstance(params["mood"], str) and
                         isinstance(params["tempo"], int)
                     ):
-                        print("⚠️  Incorrect types in Ollama response.")
                         continue
                     # Check the values are of the correct form
                     if params["genre"] not in ALL_GENRES:
-                        print("⚠️  Invalid genre in Ollama response.")
                         continue
                     if params["intensity"] not in ["low", "medium", "high"]:
-                        print("⚠️  Invalid intensity in Ollama response.")
                         continue
                     if params["mood"] not in ALL_MOODS:
-                        print("⚠️  Invalid mood in Ollama response.")
                         continue
                     if len(params["theme"].strip().split()) > 5 or len(params["theme"].strip()) == 0:
-                        print("⚠️  Invalid theme in Ollama response.")
                         continue
                     if not (40 <= params["tempo"] <= 200):
-                        print("⚠️  Tempo out of range in Ollama response.")
                         continue
 
                     # Check for genre repetition (no 3 in a row)
                     last_genres = self.last_genres[-2:] if hasattr(self, 'last_genres') else []
                     if len(last_genres) == 2 and all(g == params["genre"] for g in last_genres):
-                        print(f"⚠️  Genre '{params['genre']}' would repeat 3 times in a row. Skipping.")
                         continue
 
                     # Add language and duration, remove action

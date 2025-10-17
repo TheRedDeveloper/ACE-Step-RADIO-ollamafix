@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum, auto
 import json
-
+import readline
 import torch
 import pygame
 import select
@@ -211,6 +211,8 @@ class AIRadioStation:
         self.last_genres = []
         self.output_dir = Path("outputs")
         self.output_dir.mkdir(exist_ok=True)
+        self.user_message = ""
+        self.user_message_lock = threading.Lock()
 
         # Clean up output folder on startup
         self._cleanup_output_folder()
@@ -344,12 +346,18 @@ class AIRadioStation:
 
         playback_genre_warning = f"The genre {self.last_genres[-1]} IS NOT ALLOWED, it would repeat 3 times in a row. Choose a different genre.\n" if len(self.last_genres) >= 2 and self.last_genres[-1] == self.last_genres[-2] else ""
 
+        with self.user_message_lock:
+            user_msg = self.user_message
+
+        user_message_text = f"\nUser Message: \"{user_msg}\"\nConsider this message by the user when choosing parameters.\n" if user_msg else ""
+
         prompt = (
             "Generate a set of song json song parameters, fitting the provided screenshot.\n"
             "Think of what the user might want to listen to right now, based on the screenshot.\n"
             "Return only the response json, nothing else.\n"
             f"{playback_history_text}"
             f"{playback_genre_warning}"
+            f"{user_message_text}"
             "\n"
             "You are limited to the exact genres provided, do not deviate.\n"
             f"This is the array of genres, DO NOT deviate: {', '.join(ALL_GENRES)}.\n"
@@ -1004,9 +1012,15 @@ class AIRadioStation:
             "chill": "relaxed, laid-back, peaceful, smooth"
         }
 
+        with self.user_message_lock:
+            user_msg = self.user_message
+
+        user_message_text = f"User Message: \"{user_msg}\"\nConsider this message by the user, when writing the lyrics and theme.\n\n" if user_msg else ""
+
         prompt = (
             f"Write a {genre} song in {language} about '{theme}' using this exact structure:\n"
             f"{structure}\n\n"
+            f"{user_message_text}"
             "STRICT REQUIREMENTS:\n"
             "1. Write ONLY the song lyrics - no translations, no explanations, no notes\n"
             "2. Use ONLY the specified language: {language}\n"
@@ -1033,7 +1047,7 @@ class AIRadioStation:
             lyrics = self._clean_lyrics(lyrics)
 
             # Generate audio generation prompt
-            audio_prompt = f"{genre} music: {prompt_addons.get(genre.lower(), prompt_addons['default'])}, {mood} mood: {mood_modifiers.get(mood, mood_modifiers['upbeat'])}, {intensity} intensity: {intensity_modifiers.get(intensity, intensity_modifiers['medium'])}, {tempo} BPM, {theme}"
+            audio_prompt = f"{genre} music ({prompt_addons.get(genre.lower(), prompt_addons['default'])}), {mood} mood ({mood_modifiers.get(mood, mood_modifiers['upbeat'])}), {intensity} intensity ({intensity_modifiers.get(intensity, intensity_modifiers['medium'])}), {tempo} BPM, Theme: {theme}"
 
             return lyrics, audio_prompt
 
@@ -1110,6 +1124,7 @@ Everything feels right"""
             # Generate audio (silently)
             pipeline = self.get_pipeline()
 
+            results = None
             for attempt in range(3):  # Retry up to 3 times
                 try:
                     # Add torch.inference_mode() to disable gradient tracking
@@ -1269,18 +1284,11 @@ Everything feels right"""
         self.current_song = song
         self.state = RadioState.PLAYING
 
-        print(f"\n{'='*60}")
-        print("▶️  NOW PLAYING")
-        print(f"{'='*60}")
-        print(f"   Title: {song.title}")
-        print(f"   Genre: {song.genre} | Language: {song.language}")
-        print(f"   Tempo: {song.tempo} BPM | Duration: {song.duration:.0f}s")
-        print(f"   Mood: {song.mood} | Intensity: {song.intensity}")
-        print(f"{'='*60}")
-        print(f"\n📜 Lyrics:\n{song.lyrics}\n")
-        print(f"{'='*60}")
-        print("⌨️  Controls: [N] Skip | [R] Restart | [P] Pause/Unpause")
-        print(f"{'='*60}\n")
+        print(f"{'='*10}")
+        print(f"{song.title}")
+        print(f"{song.mood.title()}, {song.tempo} BPM, {song.intensity.title()} Intensity")
+        print(f"{'='*10}")
+        print(f"{song.lyrics}")
 
         # Track previous song for cleanup
         prev_song = getattr(self, '_last_played_song', None)
@@ -1389,7 +1397,7 @@ Everything feels right"""
         self.playback_thread.start()
 
         print("✅ Radio started successfully!")
-        print("⌨️  Press [N] to skip | [R] to restart | [P] to pause/unpause | [Q] to quit\n")
+        print("⌨️  Press [N] to skip | [R] to restart | [P] to pause/unpause | [I] to edit message | [Q] to quit\n")
 
     def stop(self):
         """Stop the radio station"""
@@ -1431,6 +1439,51 @@ Everything feels right"""
         if self.state == RadioState.PLAYING:
             self.pause_event.set()
 
+    def edit_user_message(self):
+        """Edit the user message for personalized music generation"""
+
+        with self.user_message_lock:
+            current_msg = self.user_message
+
+        try:
+            # Save current terminal settings and restore to normal (cooked) mode
+            fd = sys.stdin.fileno()
+            new_settings = termios.tcgetattr(fd)
+
+            # Restore to cooked mode (canonical mode with echo)
+            new_settings[3] = new_settings[3] | termios.ICANON | termios.ECHO
+            termios.tcsetattr(fd, termios.TCSADRAIN, new_settings)
+
+            # Flush any pending input
+            termios.tcflush(fd, termios.TCIFLUSH)
+
+            # Pre-fill the input buffer with the current message
+            def prefill_input():
+                readline.insert_text(current_msg)
+                readline.redisplay()
+
+            readline.set_pre_input_hook(prefill_input)
+
+            try:
+                new_message = input("\nMessage: ").strip()
+            finally:
+                # Clear the pre-input hook
+                readline.set_pre_input_hook()
+
+            with self.user_message_lock:
+                self.user_message = new_message
+
+            # Set terminal back to raw mode (cbreak)
+            tty.setcbreak(fd)
+
+        except Exception as e:
+            print(f"❌ Error editing user message: {e}")
+            # Try to restore terminal mode even on error
+            try:
+                tty.setcbreak(sys.stdin.fileno())
+            except Exception:
+                pass
+
 
 # ============================================================================
 # Keyboard Input Handler
@@ -1457,6 +1510,8 @@ class KeyboardHandler:
                         self.radio.restart_song()
                     elif char == 'p':
                         self.radio.toggle_pause()
+                    elif char == 'i':
+                        self.radio.edit_user_message()
                     elif char == 'q':
                         print("\n👋 Quitting...")
                         self.running = False

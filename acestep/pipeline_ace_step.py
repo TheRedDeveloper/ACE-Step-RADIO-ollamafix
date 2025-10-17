@@ -104,8 +104,13 @@ class ACEStepPipeline:
         cpu_offload=False,
         quantized=False,
         overlapped_decode=False,
+        silent=False,
         **kwargs,
     ):
+        if silent:
+            logger.stop()
+            self.silent = True
+
         if not checkpoint_dir:
             if persistent_storage_path is None:
                 checkpoint_dir = os.path.join(
@@ -159,16 +164,11 @@ class ACEStepPipeline:
         
         if checkpoint_dir is not None:
             required_dirs = ["music_dcae_f8c8", "music_vocoder", "ace_step_transformer", "umt5-base"]
-            all_dirs_exist = True
-            for dir_name in required_dirs:
-                dir_path = os.path.join(checkpoint_dir, dir_name)
-                if not os.path.exists(dir_path):
-                    all_dirs_exist = False
+            for root, _, _ in os.walk(checkpoint_dir):
+                if all(os.path.exists(os.path.join(root, d)) for d in required_dirs):
+                    logger.info(f"Load models from: {root}")
+                    checkpoint_dir_models = root
                     break
-            
-            if all_dirs_exist:
-                logger.info(f"Load models from: {checkpoint_dir}")
-                checkpoint_dir_models = checkpoint_dir
         
         if checkpoint_dir_models is None:
             if checkpoint_dir is None:
@@ -1186,7 +1186,11 @@ class ACEStepPipeline:
 
             return sample
 
-        for i, t in tqdm(enumerate(timesteps), total=num_inference_steps):
+        if getattr(self, "silent", False):
+            iterator = enumerate(timesteps)
+        else:
+            iterator = tqdm(enumerate(timesteps), total=num_inference_steps)
+        for i, t in iterator:
 
             if is_repaint:
                 if i < n_min:
@@ -1365,7 +1369,8 @@ class ACEStepPipeline:
             else:
                 _, pred_wavs = self.music_dcae.decode(pred_latents, sr=sample_rate)
         pred_wavs = [pred_wav.cpu().float() for pred_wav in pred_wavs]
-        for i in tqdm(range(bs)):
+        iterator = range(bs) if getattr(self, "silent", False) else tqdm(range(bs))
+        for i in iterator:
             output_audio_path = self.save_wav_file(
                 pred_wavs[i],
                 i,
@@ -1397,7 +1402,7 @@ class ACEStepPipeline:
         target_wav = target_wav.float()
         logger.info(f"Saving audio to {output_path_wav}")
         torchaudio.save(
-            output_path_wav, target_wav, sample_rate=sample_rate, format=format
+            output_path_wav, target_wav, sample_rate=sample_rate
         )
         return output_path_wav
 

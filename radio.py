@@ -36,17 +36,7 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     print("Warning: ollama package not available. Please install it: pip install ollama")
 
-
-# ============================================================================
-# Constants and Configuration
-# ============================================================================
-
 DEFAULT_DURATION = 130  # seconds
-
-SUPPORTED_LANGUAGES = [
-    "English", "Spanish", "French", "German", "Italian", "Portuguese",
-    "Japanese", "Chinese", "Russian", "Arabic", "Hindi", "Korean", "Finnish"
-]
 
 ALL_GENRES = [
     "pop", "rock", "electronic", "lofi", "jazz", "classical",
@@ -59,110 +49,33 @@ ALL_MOODS = [
     "upbeat", "melancholic", "energetic", "calm", "reflective"
 ]
 
-GENRE_TEMPOS = {
-    "pop": 120, "rock": 140, "electronic": 128,
-    "lofi": 85, "jazz": 110, "classical": 80, "ambient": 70,
-    "country": 100, "metal": 160, "death metal": 180, "doom metal": 60,
-    "reggae": 90, "blues": 100, "delta blues": 80,
-    "funk": 115, "disco": 120, "punk": 180,
-    "ballad": 75, "retro": 110, "folk": 95, "chiptune": 140,
-    "default": 120
+GENRE_HAS_VOCALS = {
+    "pop": True, "rock": True, "electronic": True,
+    "lofi": False, "jazz": True, "classical": False, "ambient": False,
+    "country": True, "metal": True, "death metal": True, "doom metal": True,
+    "reggae": True, "blues": True, "delta blues": True,
+    "funk": True, "disco": True, "punk": True,
+    "ballad": True, "retro": True, "folk": True, "chiptune": False,
+    "default": True
 }
 
-THEME_SUGGESTIONS = {
-    "pop": [
-        "summer love", "heartbreak", "dancing", "celebrity crush", "night out",
-        "young and free", "last goodbye", "party all night", "secret admirer",
-        "teenage dreams", "radio hit", "glitter and gold", "midnight kiss"
-    ],
-    "rock": [
-        "rebellion", "road trip", "broken dreams", "rock and roll lifestyle",
-        "guitar hero", "against the machine", "burning bridges", "small town blues",
-        "arena anthem", "leather and spikes", "last train home", "bar fight"
-    ],
-    "electronic": [
-        "neon lights", "cosmic journey", "digital dreams", "midnight drive",
-        "rave till dawn", "synthetic love", "cyberpunk city", "bass drop",
-        "laser fantasy", "underground warehouse", "alien transmission"
-    ],
-    "lofi": [
-        "rainy day", "coffee shop", "study session", "chill vibes",
-        "late night thoughts", "window seat", "old cassette tapes",
-        "sunday morning", "vinyl crackle", "city skyline at dusk"
-    ],
-    "jazz": [
-        "smooth nights", "blue mood", "speakeasy", "saxophone dreams",
-        "moonlight serenade", "smoky bar", "improvisation", "uptown swing",
-        "jazz age", "walking bassline", "after hours jam", "velvet voice"
-    ],
-    "classical": [
-        "moonlight", "spring morning", "winter tale", "royal ball",
-        "symphony no. 9", "opera drama", "baroque garden", "piano concerto",
-        "sunrise sonata", "gothic cathedral", "waltz of the flowers"
-    ],
-    "ambient": [
-        "ocean waves", "forest walk", "mountain sunrise", "deep space",
-        "arctic winds", "desert mirage", "underwater caves", "celestial bodies",
-        "morning mist", "ancient ruins", "silent meditation"
-    ],
-    "country": [
-        "small town", "truck driving", "lost love", "whiskey nights", "backroads",
-        "dusty boots", "honky tonk angel", "rodeo clown", "front porch swing",
-        "blue jeans", "pickup truck", "county fair", "dirt road diary"
-    ],
-    "metal": [
-        "battle cries", "apocalypse now", "dragon slayer", "demonic possession",
-        "forge of souls", "viking conquest", "doomsday prophecy", "blackened sky",
-        "mosh pit madness", "necrotic ritual", "shred till death"
-    ],
-    "reggae": [
-        "island breeze", "one love", "ganja farmer", "sunshine state of mind",
-        "beach bonfire", "rasta revolution", "dub plate special",
-        "tropical storm", "kingston nights", "irie vibrations"
-    ],
-    "blues": [
-        "crossroads deal", "mississippi delta", "empty whiskey bottle",
-        "train whistle blues", "juke joint", "broken guitar string",
-        "stormy monday", "dust my broom", "hard luck woman"
-    ],
-    "ballad": [
-        "lost in time", "unspoken words", "farewell letter", "moonlit promise", "eternal embrace",
-        "broken wings", "silent tears", "last dance", "fading memories", "star-crossed lovers"
-    ],
-    "retro": [
-        "disco fever", "neon nights", "roller rink", "vintage dreams", "old school groove",
-        "arcade adventure", "boombox beats", "retro romance", "cassette rewind", "synthwave sunset"
-    ],
-    "folk": [
-        "mountain trail", "campfire stories", "wandering soul", "river crossing", "old country road",
-        "harvest moon", "family roots", "traveler's tale", "wildflower fields", "timberland song"
-    ],
-    "chiptune": [
-        "pixel quest", "level up", "game over", "bitwise love", "arcade hero",
-        "boss battle", "high score", "retro runner", "glitch in time", "power-up anthem"
-    ],
-    "default": [
-        "love", "dreams", "adventure", "nostalgia", "second chances",
-        "hidden truth", "forbidden fruit", "eternal youth", "fading memories"
-    ]
-}
-
-
-# ============================================================================
-# Data Classes
-# ============================================================================
-
-class RadioState(Enum):
+class PlaybackState(Enum):
     STOPPED = auto()
     BUFFERING = auto()
     PLAYING = auto()
     PAUSED = auto()
 
+class GenerationState(Enum):
+    CLEAN = auto()
+    SCREEN = auto()
+    IDEA = auto()
+    LYRICS = auto()
+    AUDIO = auto()
+    IDLE = auto()
 
 @dataclass
 class Song:
     title: str
-    artist: str
     genre: str
     theme: str
     duration: float
@@ -176,11 +89,6 @@ class Song:
     intensity: str
     mood: str
     metadata: dict
-
-
-# ============================================================================
-# AI Radio Station
-# ============================================================================
 
 class AIRadioStation:
     def __init__(self, checkpoint_dir: str, ollama_lyrics_model: str = "gemma3:12b-it-q4_K_M", ollama_vision_model: str = "minicpm-v"):
@@ -200,7 +108,8 @@ class AIRadioStation:
         self.current_pipeline = None
         self.current_song: Optional[Song] = None
         self.song_queue = queue.Queue(maxsize=1)
-        self.state = RadioState.STOPPED
+        self.playback_state = PlaybackState.STOPPED
+        self.generation_state = GenerationState.IDLE
         self.stop_event = threading.Event()
         self.skip_event = threading.Event()
         self.restart_event = threading.Event()
@@ -214,6 +123,7 @@ class AIRadioStation:
         self.user_message_file = Path("user_message.txt")
         self.user_message = ""
         self.user_message_lock = threading.Lock()
+        self.target_duration = DEFAULT_DURATION
         
         # Load user message from file if it exists
         self._load_user_message()
@@ -227,6 +137,7 @@ class AIRadioStation:
         # Playback state
         self.playback_lock = threading.Lock()
         self.is_paused = False
+        self.volume = 1.0  # 0.0 to 1.0
 
     def _load_user_message(self):
         """Load user message from file if it exists"""
@@ -299,58 +210,30 @@ class AIRadioStation:
 
         gc.collect()
 
-    def generate_random_parameters(self) -> dict:
-        """Generate random song parameters"""
-        genre = random.choice(ALL_GENRES)
-        themes = THEME_SUGGESTIONS.get(genre, THEME_SUGGESTIONS["default"])
-        theme = random.choice(themes)
-        duration = DEFAULT_DURATION
-        tempo = GENRE_TEMPOS.get(genre, GENRE_TEMPOS["default"])
-        language = "English"  # random.choice(SUPPORTED_LANGUAGES)
-
-        # Add some variation to tempo
-        tempo = tempo + random.randint(-10, 10)
-        tempo = max(40, min(200, tempo))  # Clamp between 40-200 BPM
-
-        intensity = random.choice(["low", "medium", "high"])
-        mood = random.choice(["upbeat", "melancholic", "energetic", "calm", "reflective"])
-
-        return {
-            "genre": genre,
-            "theme": theme,
-            "duration": duration,
-            "tempo": tempo,
-            "language": language,
-            "intensity": intensity,
-            "mood": mood
-        }
-
     def generate_parameters_from_screen_with_ollama(self) -> dict:
         """Generate song parameters from what's on the screen using Ollama, supporting Wayland."""
         import shutil
         import subprocess
 
-        if self.state == RadioState.BUFFERING:
+        self.generation_state = GenerationState.SCREEN
+        if self.playback_state == PlaybackState.BUFFERING:
             print("🖼️ Looking at screen...")
 
         screenshot_path = os.path.join(self.output_dir, "screenshot.jpg")
         screenshot_taken = False
 
-        # Try grim (Wayland, Sway/wlroots)
         if shutil.which("grim"):
             try:
                 subprocess.run(["grim", "-s", "0.5", screenshot_path], check=True)
                 screenshot_taken = True
             except Exception as e:
-                print(f"⚠️  grim screenshot failed: {e}")
-        # Try gnome-screenshot (GNOME Wayland)
+                grim_error = e
         elif shutil.which("gnome-screenshot"):
             try:
                 subprocess.run(["gnome-screenshot", f"--file={screenshot_path}"], check=True)
                 screenshot_taken = True
             except Exception as e:
-                print(f"⚠️  gnome-screenshot failed: {e}")
-        # Fallback to mss (X11)
+                gnome_error = e
         else:
             try:
                 import mss
@@ -358,11 +241,11 @@ class AIRadioStation:
                     sct.shot(output=screenshot_path)
                 screenshot_taken = True
             except Exception as e:
-                print(f"⚠️  mss screenshot failed: {e}")
+                print(f"⚠️  Screenshot failed, grim: {grim_error}, gnome: {gnome_error}, mss: {e}")
 
         if not screenshot_taken or not os.path.exists(screenshot_path):
-            print(f"⚠️  Screenshot not found at {screenshot_path}")
-            return self.generate_random_parameters()
+            print(f"⚠️  Screenshot not taken at {screenshot_path}")
+            raise RuntimeError("Failed to take screenshot for parameter generation.")
 
         playback_history_text = (
             f"This is the playback history: ... {', '.join(self.playback_history)}, [ YOUR SONG ]\n"
@@ -390,7 +273,8 @@ class AIRadioStation:
             f"This is the array of genres, DO NOT deviate: {', '.join(ALL_GENRES)}.\n"
             "Choose the genre that the user would most likely enjoy, based on the screenshot.\n"
             "You may freely choose a theme as a topic of the music and lyrics based on the screenshot.\n"
-            "Your theme must be short and concise of 1 to 5 words, like a title for the song.\n"
+            "Your theme must be short and concise of 1 to 5 words, like a title for the song. The theme is a description, NOT A GENRE.\n"
+            "Do not include a genre in the theme, be creative.\n"
             "Your theme may latch onto objects, colors, emotions, places, people, actions, or anything else you see.\n"
             "Do not always choose the most obvious theme, be creative.\n"
             "You should think if the user would like something different.\n"
@@ -412,7 +296,8 @@ class AIRadioStation:
             "START LIKE THIS: ```json\n"
         )
 
-        if self.state == RadioState.BUFFERING:
+        self.generation_state = GenerationState.IDEA
+        if self.playback_state == PlaybackState.BUFFERING:
             print("💭 Inventing song...")
         for _ in range(10):
             try:
@@ -457,6 +342,8 @@ class AIRadioStation:
                         continue
                     if len(params["theme"].strip().split()) > 5 or len(params["theme"].strip()) == 0:
                         continue
+                    if any(g.lower() in params["theme"].lower() for g in ALL_GENRES):
+                        continue
                     if not (40 <= params["tempo"] <= 200):
                         continue
 
@@ -465,10 +352,13 @@ class AIRadioStation:
                     if len(last_genres) == 2 and all(g == params["genre"] for g in last_genres):
                         continue
 
-                    # Add language and duration, remove action
+                    # Add language and duration, remove action and vocals
                     del params['action']
-                    params["language"] = "English"
-                    params["duration"] = DEFAULT_DURATION
+                    if GENRE_HAS_VOCALS.get(params["genre"], True):
+                        params["language"] = "English"
+                    else:
+                        params["language"] = None
+                    params["duration"] = self.target_duration
                     # Delete the screenshot after parsing
                     try:
                         if os.path.exists(screenshot_path):
@@ -477,19 +367,17 @@ class AIRadioStation:
                         print(f"⚠️  Error deleting screenshot: {e}")
                     return params
                 except Exception as e:
-                    print(f"⚠️  Error parsing Ollama JSON: {e}")
                     continue
             except Exception as e:
                 print(f"⚠️  Ollama generation error: {e}")
-        # Fallback to random parameters if all attempts fail
         try:
             if os.path.exists(screenshot_path):
                 os.remove(screenshot_path)
         except Exception as e:
             print(f"⚠️  Error deleting screenshot: {e}")
-        return self.generate_random_parameters()
+        raise RuntimeError("Failed to generate valid parameters from screen after 10 attempts.")
 
-    def generate_lyrics_with_ollama(self, genre: str, theme: str, duration: float,
+    def generate_prompts(self, genre: str, theme: str, duration: float,
                                     language: str, tempo: int, intensity: str,
                                     mood: str) -> Tuple[str, str]:
         """Generate lyrics using Ollama"""
@@ -1068,6 +956,13 @@ class AIRadioStation:
             f"{'- Use rap flow patterns and urban vocabulary' if genre.lower() == 'hip hop' else ''}\n\n"
         )
 
+        audio_prompt = f"{genre} music ({prompt_addons.get(genre.lower(), prompt_addons['default'])}), {mood} mood ({mood_modifiers.get(mood, mood_modifiers['upbeat'])}), {intensity} intensity ({intensity_modifiers.get(intensity, intensity_modifiers['medium'])}), {tempo} BPM, Theme: {theme}"
+        
+        return prompt, audio_prompt
+    
+    def generate_lyrics_with_ollama(self, prompt: str) -> str:
+        """Generate lyrics using Ollama"""
+
         try:
             response = ollama.generate(model=self.ollama_lyrics_model, prompt=prompt, keep_alive=0)
             lyrics = response['response'].strip()
@@ -1075,15 +970,12 @@ class AIRadioStation:
             # Clean up the lyrics
             lyrics = self._clean_lyrics(lyrics)
 
-            # Generate audio generation prompt
-            audio_prompt = f"{genre} music ({prompt_addons.get(genre.lower(), prompt_addons['default'])}), {mood} mood ({mood_modifiers.get(mood, mood_modifiers['upbeat'])}), {intensity} intensity ({intensity_modifiers.get(intensity, intensity_modifiers['medium'])}), {tempo} BPM, Theme: {theme}"
-
-            return lyrics, audio_prompt
+            return lyrics
 
         except Exception as e:
             print(f"⚠️  Error generating lyrics with Ollama: {e}")
-            lyrics = self._fallback_lyrics(genre, theme)
-            return lyrics, f"{genre} music about {theme}"
+            lyrics = ""
+            return lyrics
 
     def _clean_lyrics(self, lyrics_text: str) -> str:
         """Clean up generated lyrics"""
@@ -1103,31 +995,6 @@ class AIRadioStation:
 
         return '\n'.join(cleaned_lines).strip()
 
-    def _fallback_lyrics(self, genre: str, theme: str) -> str:
-        """Generate simple fallback lyrics"""
-        return f"""[Verse 1]
-{theme}, {theme}
-In the style of {genre}
-Feeling the rhythm tonight
-
-[Chorus]
-This is our moment
-This is our time
-{theme} in the air
-Everything feels right
-
-[Verse 2]
-Moving to the beat
-Lost in the sound
-{genre} taking over
-Feel it all around
-
-[Chorus]
-This is our moment
-This is our time
-{theme} in the air
-Everything feels right"""
-
     def generate_song(self, genre: str, theme: str, duration: float,
                       tempo: int, language: str, intensity: str, mood: str) -> Optional[Song]:
         """Generate a complete song"""
@@ -1135,24 +1002,27 @@ Everything feels right"""
         start_time = time.time()
         timestamp = time.strftime("%Y%m%d%H%M%S")
 
-        try:
-            if self.state == RadioState.BUFFERING:
-                print("📜 Generating lyrics...")
-            # Generate lyrics
-            lyrics, audio_prompt = self.generate_lyrics_with_ollama(
-                genre, theme, duration, language, tempo, intensity, mood
-            )
+        lyrics_prompt, audio_prompt = self.generate_prompts(
+            genre, theme, duration, language, tempo, intensity, mood
+        )
 
-            # Generate title
-            title = f"{theme.title()} ({genre.title()})"
-            artist = "AI Radio"
+        try:
+            if language:
+                self.generation_state = GenerationState.LYRICS
+                if self.playback_state == PlaybackState.BUFFERING:
+                    print("📜 Generating lyrics...")
+                # Generate lyrics
+                lyrics = self.generate_lyrics_with_ollama(lyrics_prompt)
+            else:
+                lyrics = ""
 
             # Save lyrics
             lyrics_path = self.output_dir / f"song_{timestamp}_lyrics.txt"
             with open(lyrics_path, 'w', encoding='utf-8') as f:
                 f.write(lyrics)
 
-            if self.state == RadioState.BUFFERING:
+            self.generation_state = GenerationState.AUDIO
+            if self.playback_state == PlaybackState.BUFFERING:
                 print("🎵 Generating audio...")
             # Generate audio
             pipeline = self.get_pipeline()
@@ -1182,7 +1052,10 @@ Everything feels right"""
                     break
 
                 except Exception as e:
-                    print(f"⚠️  Audio generation attempt {attempt + 1} failed: {e}")
+                    if "out of memory" in str(e).lower():
+                        print(f"⚠️  #{attempt + 1}: Out of VRAM, try reducing duration by pressing \"<\".")
+                    else:
+                        print(f"⚠️  Audio generation attempt {attempt + 1} failed: {e}")
                     continue
 
             if not results or len(results) < 2:
@@ -1208,8 +1081,7 @@ Everything feels right"""
             generation_time = time.time() - start_time
 
             song = Song(
-                title=title,
-                artist=artist,
+                title=f"{theme.title()} ({genre.title()})",
                 genre=genre,
                 theme=theme,
                 duration=actual_duration,
@@ -1242,9 +1114,11 @@ Everything feels right"""
 
         while not self.stop_event.is_set():
             try:
+                self.generation_state = GenerationState.CLEAN
                 # Clean memory at start of loop
                 self.clean_all_memory()
 
+                self.generation_state = GenerationState.IDLE
                 # Check if queue needs more songs
                 if self.song_queue.full():
                     time.sleep(1)
@@ -1286,14 +1160,24 @@ Everything feels right"""
 
         while not self.stop_event.is_set():
             try:
-                self.state = RadioState.BUFFERING
+                if self.song_queue.empty():
+                    self.playback_state = PlaybackState.BUFFERING
+                    match self.generation_state:
+                        case GenerationState.SCREEN:
+                            print("🖼️ Looking at screen...")
+                        case GenerationState.IDEA:
+                            print("💭 Inventing song...")
+                        case GenerationState.LYRICS:
+                            print("📜 Generating lyrics...")
+                        case GenerationState.AUDIO:
+                            print("🎵 Generating audio...")
                 song = self.song_queue.get(block=True)
 
                 if self.stop_event.is_set():
                     break
 
                 # Play the song
-                self.state = RadioState.PLAYING
+                self.playback_state = PlaybackState.PLAYING
                 self._play_song(song)
 
             except Exception as e:
@@ -1305,12 +1189,14 @@ Everything feels right"""
     def _play_song(self, song: Song):
         """Play a single song with skip/restart support and clean up previous files after playback"""
         self.current_song = song
-        self.state = RadioState.PLAYING
+        self.playback_state = PlaybackState.PLAYING
 
-        print(f"{'='*10}")
+        description = f"{song.mood.title()}, {song.tempo} BPM, {song.intensity.title()} Intensity" 
+        bars = "=" * max(len(song.title), len(description))
+        print(f"\n{bars}")
         print(f"{song.title}")
-        print(f"{song.mood.title()}, {song.tempo} BPM, {song.intensity.title()} Intensity")
-        print(f"{'='*10}")
+        print(description)
+        print(f"{bars}")
         print(f"{song.lyrics}")
 
         # Track previous song for cleanup
@@ -1320,6 +1206,7 @@ Everything feels right"""
         try:
             with self.playback_lock:
                 pygame.mixer.music.load(song.audio_path)
+                pygame.mixer.music.set_volume(self.volume)
                 pygame.mixer.music.play()
         except Exception as e:
             print(f"❌ Error loading audio: {e}")
@@ -1397,7 +1284,7 @@ Everything feels right"""
 
     def start(self):
         """Start the radio station"""
-        if self.state != RadioState.STOPPED:
+        if self.playback_state != PlaybackState.STOPPED:
             print("⚠️  Radio is already running")
             return
 
@@ -1406,11 +1293,9 @@ Everything feels right"""
         self.restart_event.clear()
         self.pause_event.clear()
         self.is_paused = False
-        self.state = RadioState.BUFFERING
+        self.playback_state = PlaybackState.BUFFERING
 
-        print("\n" + "=" * 60)
         print("🎵 AI RADIO STATION STARTING...")
-        print("=" * 60)
 
         # Start worker threads
         self.generation_thread = threading.Thread(target=self._generation_worker, daemon=True)
@@ -1420,13 +1305,13 @@ Everything feels right"""
         self.playback_thread.start()
 
         print("✅ Radio started successfully!")
-        print("⌨️  Press [N] to skip | [R] to restart | [P] to pause/unpause | [I] to edit message | [Q] to quit\n")
+        print("⌨️  Press [N] to skip | [R] to restart | [P] to pause/unpause | [I] to edit message | [+/-] volume | [Q] to quit\n")
 
     def stop(self):
         """Stop the radio station"""
         print("\n🛑 Stopping radio station...")
         self.stop_event.set()
-        self.state = RadioState.STOPPED
+        self.playback_state = PlaybackState.STOPPED
 
         # Stop audio playback
         with self.playback_lock:
@@ -1449,18 +1334,44 @@ Everything feels right"""
 
     def skip_song(self):
         """Skip the current song"""
-        if self.state == RadioState.PLAYING:
+        if self.playback_state == PlaybackState.PLAYING:
             self.skip_event.set()
 
     def restart_song(self):
         """Restart the current song"""
-        if self.state == RadioState.PLAYING:
+        if self.playback_state == PlaybackState.PLAYING:
             self.restart_event.set()
 
     def toggle_pause(self):
         """Toggle pause/unpause"""
-        if self.state == RadioState.PLAYING:
+        if self.playback_state == PlaybackState.PLAYING:
             self.pause_event.set()
+    
+    def increase_volume(self):
+        """Increase volume by 10%"""
+        with self.playback_lock:
+            self.volume = min(1.0, self.volume + 0.1)
+            pygame.mixer.music.set_volume(self.volume)
+            print(f"🔊 {int(self.volume * 100)}%")
+    
+    def decrease_volume(self):
+        """Decrease volume by 10%"""
+        with self.playback_lock:
+            self.volume = max(0.0, self.volume - 0.1)
+            pygame.mixer.music.set_volume(self.volume)
+            print(f"🔉 {int(self.volume * 100)}%")
+
+    def increase_duration(self):
+        """Increase target song duration by 10 seconds"""
+        with self.duration_lock:
+            self.target_duration = max(min(240.0, self.target_duration + 10.0), 30.0)
+            print(f"⏱️ {int(self.target_duration)}s")
+    
+    def decrease_duration(self):
+        """Decrease target song duration by 10 seconds"""
+        with self.duration_lock:
+            self.target_duration = max(min(240.0, self.target_duration - 10.0), 30.0)
+            print(f"⏱️ {int(self.target_duration)}s")
 
     def edit_user_message(self):
         """Edit the user message for personalized music generation"""
@@ -1508,11 +1419,6 @@ Everything feels right"""
             except Exception:
                 pass
 
-
-# ============================================================================
-# Keyboard Input Handler
-# ============================================================================
-
 class KeyboardHandler:
     def __init__(self, radio: AIRadioStation):
         self.radio = radio
@@ -1536,6 +1442,14 @@ class KeyboardHandler:
                         self.radio.toggle_pause()
                     elif char == 'i':
                         self.radio.edit_user_message()
+                    elif char == '+' or char == '=':
+                        self.radio.increase_volume()
+                    elif char == '-' or char == '_':
+                        self.radio.decrease_volume()
+                    elif char == '<':
+                        self.radio.decrease_duration()
+                    elif char == '>':
+                        self.radio.increase_duration()
                     elif char == 'q':
                         print("\n👋 Quitting...")
                         self.running = False
@@ -1574,14 +1488,11 @@ class KeyboardHandler:
         # Wait for input thread
         if self.input_thread and self.input_thread.is_alive():
             self.input_thread.join(timeout=1)
-# ============================================================================
-# Main
-# ============================================================================
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="AI Radio Station - Continuous music generation with random parameters"
+        description="AI Radio Station - Continuous music generation based on screen content"
     )
     parser.add_argument(
         "--checkpoint_dir",

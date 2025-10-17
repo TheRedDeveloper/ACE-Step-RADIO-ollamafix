@@ -211,8 +211,12 @@ class AIRadioStation:
         self.last_genres = []
         self.output_dir = Path("outputs")
         self.output_dir.mkdir(exist_ok=True)
+        self.user_message_file = Path("user_message.txt")
         self.user_message = ""
         self.user_message_lock = threading.Lock()
+        
+        # Load user message from file if it exists
+        self._load_user_message()
 
         # Clean up output folder on startup
         self._cleanup_output_folder()
@@ -224,6 +228,25 @@ class AIRadioStation:
         self.playback_lock = threading.Lock()
         self.is_paused = False
 
+    def _load_user_message(self):
+        """Load user message from file if it exists"""
+        try:
+            if self.user_message_file.exists():
+                with open(self.user_message_file, 'r', encoding='utf-8') as f:
+                    self.user_message = f.read().strip()
+                if self.user_message:
+                    print(f"📝 Loaded: {self.user_message}")
+        except Exception as e:
+            print(f"⚠️  Error loading user message: {e}")
+    
+    def _save_user_message(self):
+        """Save user message to file"""
+        try:
+            with open(self.user_message_file, 'w', encoding='utf-8') as f:
+                f.write(self.user_message)
+        except Exception as e:
+            print(f"⚠️  Error saving user message: {e}")
+    
     def _cleanup_output_folder(self):
         """Clean up all files in the output folder on startup"""
         try:
@@ -1465,13 +1488,14 @@ Everything feels right"""
             readline.set_pre_input_hook(prefill_input)
 
             try:
-                new_message = input("\nMessage: ").strip()
+                new_message = input("📝 ").strip()
             finally:
                 # Clear the pre-input hook
                 readline.set_pre_input_hook()
 
             with self.user_message_lock:
                 self.user_message = new_message
+            self._save_user_message()
 
             # Set terminal back to raw mode (cbreak)
             tty.setcbreak(fd)

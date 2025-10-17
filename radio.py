@@ -39,23 +39,59 @@ except ImportError:
 DEFAULT_DURATION = 130  # seconds
 
 ALL_GENRES = [
-    "pop", "rock", "electronic", "lofi", "jazz", "classical",
-    "ambient", "country", "metal", "death metal", "doom metal", "reggae",
-    "blues", "delta blues", "funk", "disco", "punk",
-    "ballad", "retro", "folk", "chiptune"
+    "pop", 
+    "rock", 
+    "electronic", 
+    "lofi", 
+    "jazz", 
+    "classical",
+    "ambient", 
+    "country", 
+    "metal", 
+    "death metal", 
+    "doom metal", 
+    "reggae",
+    "blues", 
+    "delta blues", 
+    "funk", 
+    "disco", 
+    "punk",
+    "ballad", 
+    "retro", 
+    "folk", 
+    "chiptune"
 ]
 
 ALL_MOODS = [
-    "upbeat", "melancholic", "energetic", "calm", "reflective"
+    "upbeat",
+    "melancholic",
+    "energetic",
+    "calm",
+    "reflective"
 ]
 
 GENRE_HAS_VOCALS = {
-    "pop": True, "rock": True, "electronic": True,
-    "lofi": False, "jazz": True, "classical": False, "ambient": False,
-    "country": True, "metal": True, "death metal": True, "doom metal": True,
-    "reggae": True, "blues": True, "delta blues": True,
-    "funk": True, "disco": True, "punk": True,
-    "ballad": True, "retro": True, "folk": True, "chiptune": False,
+    "pop": True,
+    "rock": True,
+    "electronic": True,
+    "lofi": False,
+    "jazz": True,
+    "classical": False,
+    "ambient": False,
+    "country": True,
+    "metal": True,
+    "death metal": True,
+    "doom metal": True,
+    "reggae": True,
+    "blues": True,
+    "delta blues": True,
+    "funk": True,
+    "disco": True,
+    "punk": True,
+    "ballad": True,
+    "retro": True,
+    "folk": True,
+    "chiptune": False,
     "default": True
 }
 
@@ -384,14 +420,14 @@ class AIRadioStation:
 
         long_structures = {
             "country": (
-                "[Steel Guitar Intro]\n\n"
+                "[Steel Guitar Intro] (instrumental)\n\n"
                 "[Verse 1] (storytelling)\n{lyrics}\n\n"
                 "[Chorus] (big melody)\n{lyrics}\n\n"
                 "[Verse 2] (develop story)\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Fiddle Solo] (8 bars)\n\n"
+                "[Fiddle Solo] (8 bars, instrumental)\n\n"
                 "[Bridge] (emotional peak)\n{lyrics}\n\n"
-                "[Double Chorus] (with harmonies)"
+                "[Double Chorus] (with harmonies, instrumental)"
             ),
             "pop": (
                 "[Verse 1]\n{lyrics}\n\n"
@@ -401,119 +437,86 @@ class AIRadioStation:
                 "[Pre-Chorus]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus] (with ad-libs)"
+                "[Final Chorus] (with ad-libs)\n{lyrics}"
             ),
             "rock": (
-                "[Guitar Intro]\n\n"
+                "[Guitar Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Guitar Solo] (8-16 bars)\n\n"
+                "[Guitar Solo] (8-16 bars, instrumental)\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Double Chorus] (big finish)"
+                "[Double Chorus] (big finish, instrumental)"
             ),
             "electronic": (
-                "[Atmospheric Intro] (16 bars)\n\n"
+                "[Atmospheric Intro] (16 bars, instrumental)\n\n"
                 "[Build-Up]\n{lyrics}\n\n"
                 "[Drop]\n{lyrics}\n\n"
                 "[Breakdown Verse]\n{lyrics}\n\n"
                 "[Build-Up]\n{lyrics}\n\n"
                 "[Drop]\n{lyrics}\n\n"
-                "[Outro] (beat fade)"
-            ),
-            "lofi": (
-                "[Ambient Intro] (with vinyl noise)\n\n"
-                "[Verse 1]\n{lyrics}\n\n"
-                "[Chill Chorus]\n{lyrics}\n\n"
-                "[Verse 2]\n{lyrics}\n\n"
-                "[Chill Chorus]\n{lyrics}\n\n"
-                "[Instrumental Break] (8 bars)\n\n"
-                "[Outro] (fade with rain sounds)"
+                "[Outro] (beat fade, instrumental)"
             ),
             "jazz": (
-                "[Piano Intro] (improvised)\n\n"
+                "[Piano Intro] (improvised, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Swing Chorus]\n{lyrics}\n\n"
-                "[Instrumental Break] (sax solo)\n\n"
+                "[Instrumental Break] (sax solo, instrumental)\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Swing Chorus]\n{lyrics}\n\n"
-                "[Outro] (group improv)"
-            ),
-            "classical": (
-                "[Orchestral Introduction]\n\n"
-                "[Theme A]\n{lyrics}\n\n"
-                "[Theme B] (variation)\n\n"
-                "[Development Section]\n\n"
-                "[Recapitulation]\n{lyrics}\n\n"
-                "[Coda] (grand finale)"
-            ),
-            "ambient": (
-                "[Textural Intro] (2-4 minutes)\n\n"
-                "[Drone Section]\n{lyrics}\n\n"
-                "[Modulation]\n\n"
-                "[Resolution Section]\n{lyrics}\n\n"
-                "[Fade Out] (gradual)"
+                "[Outro] (group improv, instrumental)"
             ),
             "metal": (
-                "[Shredding Intro] (fast picking)\n\n"
+                "[Shredding Intro] (fast picking, instrumental)\n\n"
                 "[Verse 1] (growled vocals)\n{lyrics}\n\n"
                 "[Chorus] (clean vocals)\n{lyrics}\n\n"
-                "[Guitar Solo] (tapping)\n\n"
-                "[Breakdown] (chugging riffs)\n\n"
-                "[Final Blast] (double bass)"
+                "[Guitar Solo] (tapping, instrumental)\n\n"
+                "[Breakdown] (chugging riffs, instrumental)\n\n"
+                "[Final Blast] (double bass, instrumental)"
             ),
             "reggae": (
-                "[Skank Guitar Intro]\n\n"
+                "[Skank Guitar Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (call-and-response)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Dub Section] (instrumental)\n\n"
-                "[Final Chorus] (with harmonies)"
+                "[Final Chorus] (with harmonies)\n{lyrics}"
             ),
             "blues": (
-                "[Guitar Lick Intro] (12-bar)\n\n"
+                "[Guitar Lick Intro] (12-bar, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
-                "[Response] (guitar answers vocal)\n\n"
+                "[Response] (guitar answers vocal, instrumental)\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Harmonica Solo] (12-bar)\n\n"
-                "[Outro] (repeat and fade)"
+                "[Harmonica Solo] (12-bar, instrumental)\n\n"
+                "[Outro] (repeat and fade, instrumental)"
             ),
             "ballad": (
-                "[Piano Intro] (soft, emotional)\n\n"
+                "[Piano Intro] (soft, emotional, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (heartfelt)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge] (emotional peak)\n{lyrics}\n\n"
-                "[Final Chorus] (with harmonies)"
+                "[Final Chorus] (with harmonies, instrumental)"
             ),
             "retro": (
-                "[Synthwave Intro] (vintage sounds)\n\n"
+                "[Synthwave Intro] (vintage sounds, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (catchy)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge] (nostalgic)\n{lyrics}\n\n"
-                "[Final Chorus] (big finish)"
+                "[Final Chorus] (big finish, instrumental)"
             ),
             "folk": (
-                "[Acoustic Guitar Intro]\n\n"
+                "[Acoustic Guitar Intro] (instrumental)\n\n"
                 "[Verse 1] (storytelling)\n{lyrics}\n\n"
                 "[Chorus] (singalong)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge] (reflective)\n{lyrics}\n\n"
-                "[Final Chorus] (group vocals)"
-            ),
-            "chiptune": (
-                "[8-bit Intro] (game sounds)\n\n"
-                "[Level 1]\n{lyrics}\n\n"
-                "[Boss Battle]\n{lyrics}\n\n"
-                "[Level 2]\n{lyrics}\n\n"
-                "[Power-Up]\n{lyrics}\n\n"
-                "[Final Level]\n{lyrics}\n\n"
-                "[Victory Theme] (high score)"
+                "[Final Chorus] (group vocals)\n{lyrics}"
             ),
             "default": (
                 "[Intro]\n{lyrics}\n\n"
@@ -522,20 +525,20 @@ class AIRadioStation:
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge/Middle 8]\n{lyrics}\n\n"
-                "[Chorus] (variation)\n\n"
-                "[Outro] (optional vamp)"
+                "[Chorus] (variation)\n{lyrics}\n"
+                "[Outro] (fade out)\n{lyrics}"
             )
         }
 
         medium_structures = {
             "country": (
-                "[Steel Guitar Intro]\n\n"
+                "[Steel Guitar Intro] (instrumental)\n\n"
                 "[Verse 1] (storytelling)\n{lyrics}\n\n"
                 "[Chorus] (big melody)\n{lyrics}\n\n"
                 "[Verse 2] (develop story)\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge] (emotional peak)\n{lyrics}\n\n"
-                "[Final Chorus]"
+                "[Final Chorus] (instrumental)"
             ),
             "pop": (
                 "[Verse 1]\n{lyrics}\n\n"
@@ -544,7 +547,7 @@ class AIRadioStation:
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Chorus] (final)"
+                "[Chorus] (final)\n{lyrics}"
             ),
             "rock": (
                 "[Guitar Intro]\n\n"
@@ -552,31 +555,15 @@ class AIRadioStation:
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Guitar Solo] (4-8 bars)\n\n"
-                "[Final Chorus]"
-            ),
-            "hip hop": (
-                "[Intro Hook]\n{lyrics}\n\n"
-                "[Verse 1]\n{lyrics}\n\n"
-                "[Chorus]\n{lyrics}\n\n"
-                "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus]\n{lyrics}\n\n"
-                "[Outro]"
+                "[Guitar Solo] (4-8 bars, instrumental)\n\n"
+                "[Final Chorus]\n{lyrics}"
             ),
             "electronic": (
                 "[Build-Up] (8 bars)\n{lyrics}\n\n"
                 "[Drop]\n{lyrics}\n\n"
                 "[Breakdown]\n{lyrics}\n\n"
                 "[Build-Up]\n{lyrics}\n\n"
-                "[Drop] (final)"
-            ),
-            "lofi": (
-                "[Ambient Intro]\n\n"
-                "[Verse 1]\n{lyrics}\n\n"
-                "[Chill Chorus]\n{lyrics}\n\n"
-                "[Verse 2]\n{lyrics}\n\n"
-                "[Chill Chorus]\n{lyrics}\n\n"
-                "[Outro] (fade)"
+                "[Drop] (final, instrumental)"
             ),
             "jazz": (
                 "[Piano Intro]\n\n"
@@ -586,304 +573,250 @@ class AIRadioStation:
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Swing Chorus]"
             ),
-            "classical": (
-                "[Introduction]\n\n"
-                "[Theme A]\n{lyrics}\n\n"
-                "[Theme B]\n{lyrics}\n\n"
-                "[Development]\n{lyrics}\n\n"
-                "[Recapitulation]\n{lyrics}"
-            ),
-            "ambient": (
-                "[Textural Intro]\n\n"
-                "[Drone Section]\n{lyrics}\n\n"
-                "[Modulation]\n{lyrics}\n\n"
-                "[Resolution]\n{lyrics}\n\n"
-                "[Fade Out]"
-            ),
             "metal": (
-                "[Heavy Intro]\n\n"
+                "[Heavy Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Guitar Solo] (8 bars)\n\n"
-                "[Final Chorus]"
+                "[Guitar Solo] (8 bars, instrumental)\n\n"
+                "[Final Chorus]\n{lyrics}"
             ),
             "death metal": (
-                "[Blast Intro]\n\n"
+                "[Blast Intro] (instrumental)\n\n"
                 "[Verse 1] (growled)\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Breakdown]\n\n"
-                "[Final Blast]"
+                "[Breakdown] (instrumental)\n\n"
+                "[Final Blast]\n{lyrics}"
             ),
             "doom metal": (
-                "[Slow Heavy Intro]\n\n"
+                "[Slow Heavy Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (crushing)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Outro] (fade)"
+                "[Outro] (fade)\n{lyrics}"
             ),
             "reggae": (
-                "[Skank Intro]\n\n"
+                "[Skank Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (call-response)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Dub Break] (8 bars)\n\n"
-                "[Final Chorus]"
+                "[Dub Break] (8 bars, instrumental)\n\n"
+                "[Final Chorus]\n{lyrics}"
             ),
             "blues": (
-                "[Guitar Lick Intro]\n\n"
+                "[Guitar Lick Intro] (instrumental)\n\n"
                 "[Verse 1] (12-bar)\n{lyrics}\n\n"
-                "[Response] (guitar)\n\n"
+                "[Response] (guitar, instrumental)\n\n"
                 "[Verse 2] (12-bar)\n{lyrics}\n\n"
-                "[Harmonica Solo] (8 bars)\n\n"
+                "[Harmonica Solo] (8 bars, instrumental)\n\n"
                 "[Verse 3]\n{lyrics}\n\n"
-                "[Outro]"
+                "[Outro]\n{lyrics}"
             ),
             "delta blues": (
-                "[Acoustic Intro]\n\n"
+                "[Acoustic Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
-                "[Slide Guitar Response]\n\n"
+                "[Slide Guitar Response] (instrumental)\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Instrumental Break]\n\n"
+                "[Instrumental Break] (instrumental)\n\n"
                 "[Verse 3]\n{lyrics}\n\n"
-                "[Outro]"
+                "[Outro] (fade, instrumental)"
             ),
             "funk": (
-                "[Groove Intro]\n\n"
+                "[Groove Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Bass Break] (4 bars)\n\n"
-                "[Chorus] (vamp out)"
+                "[Bass Break] (4 bars, instrumental)\n\n"
+                "[Chorus] (vamp out, instrumental)"
             ),
             "disco": (
-                "[Four-on-Floor Intro]\n\n"
+                "[Four-on-Floor Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[String Break] (4 bars)\n\n"
-                "[Final Chorus]"
+                "[String Break] (4 bars, instrumental)\n\n"
+                "[Final Chorus]\n{lyrics}"
             ),
             "punk": (
-                "[Fast Intro] (4 bars)\n\n"
+                "[Fast Intro] (4 bars, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (shout it)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus]"
+                "[Final Chorus]\n{lyrics}"
             ),
             "ballad": (
-                "[Piano Intro]\n\n"
+                "[Piano Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus]"
+                "[Final Chorus]\n{lyrics}"
             ),
             "retro": (
-                "[Synthwave Intro]\n\n"
+                "[Synthwave Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus]"
+                "[Final Chorus]\n{lyrics}"
             ),
             "folk": (
-                "[Acoustic Guitar Intro]\n\n"
+                "[Acoustic Guitar Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus]"
-            ),
-            "chiptune": (
-                "[8-bit Intro]\n\n"
-                "[Level 1]\n{lyrics}\n\n"
-                "[Boss Battle]\n{lyrics}\n\n"
-                "[Level 2]\n{lyrics}\n\n"
-                "[Power-Up]\n{lyrics}\n\n"
-                "[Final Level]"
+                "[Final Chorus]\n{lyrics}"
             ),
             "default": (
-                "[Intro]\n\n"
+                "[Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Bridge]\n{lyrics}\n\n"
-                "[Final Chorus]"
+                "[Final Chorus]\n{lyrics}"
             )
         }
 
         short_structures = {
             "country": (
-                "[Steel Guitar Intro]\n\n"
+                "[Steel Guitar Intro] (instrumental)\n\n"
                 "[Verse 1] (storytelling)\n{lyrics}\n\n"
                 "[Chorus] (big melody)\n{lyrics}\n\n"
                 "[Verse 2] (develop story)\n{lyrics}\n\n"
-                "[Chorus] (big finish)"
+                "[Chorus] (big finish, instrumental)"
             ),
             "pop": (
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Pre-Chorus]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (with ad-libs)"
+                "[Chorus] (with ad-libs)\n{lyrics}"
             ),
             "rock": (
-                "[Guitar Intro]\n\n"
+                "[Guitar Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Guitar Solo] (4 bars)\n\n"
-                "[Chorus] (big finish)"
-            ),
-            "hip hop": (
-                "[Intro Hook]\n{lyrics}\n\n"
-                "[Verse 1]\n{lyrics}\n\n"
-                "[Hook]\n{lyrics}\n\n"
-                "[Verse 2]\n{lyrics}\n\n"
-                "[Outro Hook]"
+                "[Guitar Solo] (4 bars, instrumental)\n\n"
+                "[Chorus] (big finish)\n{lyrics}"
             ),
             "electronic": (
                 "[Build-Up] (8 bars)\n{lyrics}\n\n"
                 "[Drop]\n{lyrics}\n\n"
                 "[Breakdown]\n{lyrics}\n\n"
-                "[Drop] (final)"
-            ),
-            "lofi": (
-                "[Ambient Intro] (with vinyl noise)\n\n"
-                "[Verse 1]\n{lyrics}\n\n"
-                "[Chill Chorus]\n{lyrics}\n\n"
-                "[Verse 2]\n{lyrics}\n\n"
-                "[Outro] (fade)"
+                "[Drop] (final, instrumental)"
             ),
             "jazz": (
-                "[Piano Intro]\n\n"
+                "[Piano Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Swing Chorus]\n{lyrics}\n\n"
-                "[Brief Solo] (4 bars)\n\n"
-                "[Outro]"
-            ),
-            "classical": (
-                "[Introduction]\n\n"
-                "[Theme A]\n{lyrics}\n\n"
-                "[Theme B]\n{lyrics}\n\n"
-                "[Recapitulation]\n{lyrics}"
-            ),
-            "ambient": (
-                "[Textural Intro]\n\n"
-                "[Main Section]\n{lyrics}\n\n"
-                "[Fade Out]"
+                "[Brief Solo] (4 bars, instrumental)\n\n"
+                "[Outro] (instrumental)"
             ),
             "metal": (
-                "[Heavy Intro]\n\n"
+                "[Heavy Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Breakdown] (4 bars)\n\n"
-                "[Final Chorus]"
+                "[Breakdown] (4 bars, instrumental)\n\n"
+                "[Final Chorus]\n{lyrics}"
             ),
             "death metal": (
-                "[Blast Intro]\n\n"
+                "[Blast Intro] (instrumental)\n\n"
                 "[Verse 1] (growled)\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
-                "[Breakdown]\n\n"
-                "[Final Blast]"
+                "[Breakdown] (instrumental)\n\n"
+                "[Final Blast]\n{lyrics}"
             ),
             "doom metal": (
-                "[Slow Heavy Intro]\n\n"
+                "[Slow Heavy Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (crushing)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Outro] (fade)"
+                "[Outro] (fade)\n{lyrics}"
             ),
             "reggae": (
-                "[Skank Intro]\n\n"
+                "[Skank Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (call-response)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (with harmonies)"
+                "[Chorus] (with harmonies)\n{lyrics}"
             ),
             "blues": (
-                "[Guitar Lick Intro]\n\n"
+                "[Guitar Lick Intro] (instrumental)\n\n"
                 "[Verse 1] (12-bar)\n{lyrics}\n\n"
-                "[Response] (guitar)\n\n"
+                "[Response] (guitar, instrumental)\n\n"
                 "[Verse 2] (12-bar)\n{lyrics}\n\n"
-                "[Outro]"
+                "[Outro] (instrumental)\n{lyrics}"
             ),
             "delta blues": (
-                "[Acoustic Intro]\n\n"
+                "[Acoustic Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
-                "[Slide Guitar Response]\n\n"
+                "[Slide Guitar Response] (instrumental)\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Outro] (fade)"
+                "[Outro] (fade)\n{lyrics}"
             ),
             "funk": (
-                "[Groove Intro]\n\n"
+                "[Groove Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (tight groove)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (vamp out)"
+                "[Chorus] (vamp out)\n{lyrics}"
             ),
             "disco": (
-                "[Four-on-Floor Intro]\n\n"
+                "[Four-on-Floor Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (danceable)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (with strings)"
+                "[Chorus] (with strings)\n{lyrics}"
             ),
             "punk": (
-                "[Fast Intro] (4 bars)\n\n"
+                "[Fast Intro] (4 bars, instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus] (shout it)\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (fast finish)"
+                "[Chorus] (fast finish)\n{lyrics}"
             ),
             "ballad": (
-                "[Piano Intro]\n\n"
+                "[Piano Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (soft ending)"
+                "[Chorus] (soft ending)\n{lyrics}"
             ),
             "retro": (
-                "[Synthwave Intro]\n\n"
+                "[Synthwave Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (fade out)"
+                "[Chorus] (fade out)\n{lyrics}"
             ),
             "folk": (
-                "[Acoustic Guitar Intro]\n\n"
+                "[Acoustic Guitar Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (campfire ending)"
-            ),
-            "chiptune": (
-                "[8-bit Intro]\n\n"
-                "[Level 1]\n{lyrics}\n\n"
-                "[Boss Battle]\n{lyrics}\n\n"
-                "[Power-Up]\n{lyrics}\n\n"
-                "[Victory Theme]"
+                "[Chorus] (campfire ending)\n{lyrics}"
             ),
             "default": (
                 "[Intro]\n{lyrics}\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
                 "[Chorus]\n{lyrics}\n\n"
                 "[Verse 2]\n{lyrics}\n\n"
-                "[Chorus] (variation)\n\n"
-                "[Outro]"
+                "[Chorus] (variation)\n{lyrics}\n\n"
+                "[Outro]\n{lyrics}"
             )
         }
 

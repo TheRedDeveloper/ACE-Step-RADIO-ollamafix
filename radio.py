@@ -400,6 +400,8 @@ class AIRadioStation:
                         continue
                     if any(g.lower() in params["theme"].lower() for g in ALL_GENRES):
                         continue
+                    if "vocals" in params["theme"].lower():
+                        continue # This breaks the music ai
                     if not (40 <= params["tempo"] <= 200):
                         continue
 

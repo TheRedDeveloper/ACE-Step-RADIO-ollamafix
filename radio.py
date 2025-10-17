@@ -306,6 +306,10 @@ class AIRadioStation:
         """Generate song parameters from what's on the screen using Ollama, supporting Wayland."""
         import shutil
         import subprocess
+
+        if self.state == RadioState.BUFFERING:
+            print("🖼️ Looking at screen...")
+
         screenshot_path = os.path.join(self.output_dir, "screenshot.jpg")
         screenshot_taken = False
 
@@ -385,6 +389,8 @@ class AIRadioStation:
             "START LIKE THIS: ```json\n"
         )
 
+        if self.state == RadioState.BUFFERING:
+            print("💭 Inventing song...")
         for _ in range(10):
             try:
                 output = ollama.generate(
@@ -1107,7 +1113,9 @@ Everything feels right"""
         timestamp = time.strftime("%Y%m%d%H%M%S")
 
         try:
-            # Generate lyrics (silently)
+            if self.state == RadioState.BUFFERING:
+                print("📜 Generating lyrics...")
+            # Generate lyrics
             lyrics, audio_prompt = self.generate_lyrics_with_ollama(
                 genre, theme, duration, language, tempo, intensity, mood
             )
@@ -1121,7 +1129,9 @@ Everything feels right"""
             with open(lyrics_path, 'w', encoding='utf-8') as f:
                 f.write(lyrics)
 
-            # Generate audio (silently)
+            if self.state == RadioState.BUFFERING:
+                print("🎵 Generating audio...")
+            # Generate audio
             pipeline = self.get_pipeline()
 
             results = None

@@ -127,6 +127,19 @@ class GenerationState(Enum):
     AUDIO = auto()
     IDLE = auto()
 
+class VocalPolicy(Enum):
+    NORMAL = auto()
+    VOCALONLY = auto()
+    NOVOCALS = auto()
+
+    def allowed_genres(self) -> List[str]:
+        if self == VocalPolicy.NORMAL:
+            return ALL_GENRES
+        elif self == VocalPolicy.VOCALONLY:
+            return [genre for genre in ALL_GENRES if GENRE_HAS_VOCALS.get(genre, True)]
+        elif self == VocalPolicy.NOVOCALS:
+            return [genre for genre in ALL_GENRES if not GENRE_HAS_VOCALS.get(genre, True)]
+
 
 @dataclass
 class Song:
@@ -180,6 +193,7 @@ class AIRadioStation:
         self.user_message = ""
         self.user_message_lock = threading.Lock()
         self.target_duration = DEFAULT_DURATION
+        self.vocal_policy = VocalPolicy.NORMAL
 
         # Load user message from file if it exists
         self._load_user_message()
@@ -326,7 +340,7 @@ class AIRadioStation:
             f"{user_message_text}"
             "\n"
             "You are limited to the exact genres provided, do not deviate.\n"
-            f"This is the array of genres, DO NOT deviate: {', '.join(ALL_GENRES)}.\n"
+            f"This is the array of genres, DO NOT deviate: {self.vocal_policy.allowed_genres()}.\n"
             "Choose the genre that the user would most likely enjoy, based on the screenshot.\n"
             "You may freely choose a theme as a topic of the music and lyrics based on the screenshot.\n"
             "Your theme must be short and concise of 1 to 5 words, like a title for the song. The theme is a description, NOT A GENRE.\n"
@@ -342,7 +356,7 @@ class AIRadioStation:
             "\n"
             "The output must be in this exact format:\n"
             "```json\n"
-            f"{{\"action\": \"<description of the users screen and what the user is doing in the screenshot>\", \"genre\": \"<one of these genres: {', '.join(ALL_GENRES)} - DO NOT DEVIATE>\", \"theme\": \"<a theme of the song used for lyric and music generation - 1 to 5 words>\", \"tempo\": <tempo in BPM, integer>, \"intensity\": \"<one of these: low, medium, high - DO NOT DEVIATE>\", \"mood\": \"<one of these: {', '.join(ALL_MOODS)} - DO NOT DEVIATE>\"}}\n"
+            f"{{\"action\": \"<description of the users screen and what the user is doing in the screenshot>\", \"genre\": \"<one of these genres: {', '.join(self.vocal_policy.allowed_genres())} - DO NOT DEVIATE>\", \"theme\": \"<a theme of the song used for lyric and music generation - 1 to 5 words>\", \"tempo\": <tempo in BPM, integer>, \"intensity\": \"<one of these: low, medium, high - DO NOT DEVIATE>\", \"mood\": \"<one of these: {', '.join(ALL_MOODS)} - DO NOT DEVIATE>\"}}\n"
             "```\n"
             "\n"
             "DO NOT DEVIATE FROM THE FORMAT\n"
@@ -390,7 +404,7 @@ class AIRadioStation:
                     ):
                         continue
                     # Check the values are of the correct form
-                    if params["genre"] not in ALL_GENRES:
+                    if params["genre"] not in self.vocal_policy.allowed_genres():
                         continue
                     if params["intensity"] not in ["low", "medium", "high"]:
                         continue
@@ -401,7 +415,7 @@ class AIRadioStation:
                     if any(g.lower() in params["theme"].lower() for g in ALL_GENRES):
                         continue
                     if "vocals" in params["theme"].lower():
-                        continue # This breaks the music ai
+                        continue  # This breaks the music ai
                     if not (40 <= params["tempo"] <= 200):
                         continue
 
@@ -1036,6 +1050,56 @@ class AIRadioStation:
 
         user_message_text = f"User Message: \"{user_msg}\"\nConsider this message by the user, when writing the lyrics and theme.\n\n" if user_msg else ""
 
+        min_wpm = {
+            "pop": 70,
+            "rock": 90,
+            "electronic": 80,
+            "house": 85,
+            "trance": 90,
+            "dubstep": 85,
+            "drum and bass": 90,
+            "downtempo": 60,
+            "jazz": 60,
+            "country": 90,
+            "metal": 90,
+            "death metal": 90,
+            "doom metal": 90,
+            "reggae": 70,
+            "blues": 60,
+            "delta blues": 65,
+            "funk": 80,
+            "disco": 90,
+            "punk": 90,
+            "ballad": 50,
+            "retro": 85,
+            "folk": 70,
+        }.get(genre.lower(), 80)
+
+        max_wpm = {
+            "pop": 80,
+            "rock": 100,
+            "electronic": 100,
+            "house": 100,
+            "trance": 100,
+            "dubstep": 100,
+            "drum and bass": 100,
+            "downtempo": 90,
+            "jazz": 80,
+            "country": 90,
+            "metal": 100,
+            "death metal": 100,
+            "doom metal": 90,
+            "reggae": 90,
+            "blues": 70,
+            "delta blues": 75,
+            "funk": 90,
+            "disco": 100,
+            "punk": 110,
+            "ballad": 80,
+            "retro": 100,
+            "folk": 80,
+        }.get(genre.lower(), 160)
+
         prompt = (
             f"Write a {genre} song in {language} about '{theme}' using this exact structure:\n"
             f"{structure}\n\n"
@@ -1045,9 +1109,10 @@ class AIRadioStation:
             "2. Use ONLY the specified language: {language}\n"
             "3. Follow the structure EXACTLY as shown\n"
             "4. Format each section header exactly as shown (e.g. [Verse 1])\n"
-            f"5. The music must be no longer than {int(duration)}s so {int(duration * 0.8)} to {int(duration * 1.3)} words.\n"
-            f"6. DO NOT surpass {int(duration * 1.3)} words, so use less than {int(duration * 1.3 / structure.count('{lyrics}'))} words per section.\n"
-            "7. Never include any text outside the {lyrics} structure. DO NOT touch instrumental sections, only the {lyrics} parts, do not include the text \"{lyrics}\" itself.\n\n"
+            f"5. The music must be no longer than {int(duration)}s so {int(duration * min_wpm / 60)} to {int(duration * max_wpm / 60)} words.\n"
+            f"6. DO NOT surpass {int(duration * max_wpm / 60)} words, so use less than {int(duration * max_wpm / 60 / structure.count('{lyrics}'))} words per section.\n"
+            f"7. Use AT LEAST {int(duration * min_wpm / 60)} words, so use more than {int(duration * min_wpm / 60 / structure.count('{lyrics}'))} words per section.\n"
+            "8. Never include any text outside the {lyrics} structure. DO NOT touch instrumental sections, only the {lyrics} parts, do not include the text \"{lyrics}\" itself.\n\n"
             "STYLE GUIDELINES:\n"
             f"- {prompt_addons.get(genre.lower(), prompt_addons['default'])}\n"
             f"- {intensity_modifiers.get(intensity, intensity_modifiers['medium'])} feel\n"
@@ -1116,7 +1181,7 @@ class AIRadioStation:
                 # Generate lyrics
                 lyrics = self.generate_lyrics_with_ollama(lyrics_prompt)
             else:
-                lyrics = ""
+                lyrics = "(Silence, no vocals)"
 
             # Save lyrics
             lyrics_path = self.output_dir / f"song_{timestamp}_lyrics.txt"
@@ -1407,7 +1472,7 @@ class AIRadioStation:
         self.playback_thread.start()
 
         print("✅ Radio started successfully!")
-        print("⌨️  Press [N] to skip | [R] to restart | [P] to pause/unpause | [I] to edit message | [+/-] volume | [Q] to quit\n")
+        print("[N] skip | [R] restart | [P] pause/unpause | [+/-] volume ~ [I] edit message | [</>] duration | [V] vocal policy ~ [Q] quit\n")
 
     def stop(self):
         """Stop the radio station"""
@@ -1465,15 +1530,27 @@ class AIRadioStation:
 
     def increase_duration(self):
         """Increase target song duration by 10 seconds"""
-        with self.duration_lock:
-            self.target_duration = max(min(240.0, self.target_duration + 10.0), 30.0)
-            print(f"⏱️ {int(self.target_duration)}s")
+        self.target_duration = max(min(240.0, self.target_duration + 10.0), 30.0)
+        print(f"⏱️ {int(self.target_duration)}s")
 
     def decrease_duration(self):
         """Decrease target song duration by 10 seconds"""
-        with self.duration_lock:
-            self.target_duration = max(min(240.0, self.target_duration - 10.0), 30.0)
-            print(f"⏱️ {int(self.target_duration)}s")
+        self.target_duration = max(min(240.0, self.target_duration - 10.0), 30.0)
+        print(f"⏱️ {int(self.target_duration)}s")
+
+    def change_vocal_policy(self):
+        """Cycle through vocal policies: vocals, instrumental, mixed"""
+        policies = [VocalPolicy.NORMAL, VocalPolicy.VOCALONLY, VocalPolicy.NOVOCALS]
+        current_index = policies.index(self.vocal_policy)
+        new_index = (current_index + 1) % len(policies)
+        self.vocal_policy = policies[new_index]
+        match self.vocal_policy:
+            case VocalPolicy.NORMAL:
+                print("🎤 With & Without Vocals")
+            case VocalPolicy.VOCALONLY:
+                print("🎤 With Vocals Only")
+            case VocalPolicy.NOVOCALS:
+                print("🎤 Instrumental Only")
 
     def edit_user_message(self):
         """Edit the user message for personalized music generation"""
@@ -1549,18 +1626,19 @@ class KeyboardHandler:
                         self.radio.increase_volume()
                     elif char == '-' or char == '_':
                         self.radio.decrease_volume()
-                    elif char == '<':
+                    elif char == '<' or char == ',':
                         self.radio.decrease_duration()
-                    elif char == '>':
+                    elif char == '>' or char == '.':
                         self.radio.increase_duration()
+                    elif char == 'v':
+                        self.radio.change_vocal_policy()
                     elif char == 'q':
                         print("\n👋 Quitting...")
                         self.running = False
                         self.radio.stop()
                         break
-            except Exception:
-                # Silently ignore input errors
-                pass
+            except Exception as e:
+                print(f"⚠️  Warning: Input error occurred - {e}")
 
     def start(self):
         """Start listening for keyboard input"""

@@ -39,26 +39,34 @@ except ImportError:
 DEFAULT_DURATION = 130  # seconds
 
 ALL_GENRES = [
-    "pop", 
-    "rock", 
-    "electronic", 
-    "lofi", 
-    "jazz", 
+    "pop",
+    "rock",
+    "electronic",
+    "house",
+    "techno",
+    "trance",
+    "dubstep",
+    "drum and bass",
+    "downtempo",
+    "idm",
+    "lofi",
+    "jazz",
+    "smooth jazz",
     "classical",
-    "ambient", 
-    "country", 
-    "metal", 
-    "death metal", 
-    "doom metal", 
+    "ambient",
+    "country",
+    "metal",
+    "death metal",
+    "doom metal",
     "reggae",
-    "blues", 
-    "delta blues", 
-    "funk", 
-    "disco", 
+    "blues",
+    "delta blues",
+    "funk",
+    "disco",
     "punk",
-    "ballad", 
-    "retro", 
-    "folk", 
+    "ballad",
+    "retro",
+    "folk",
     "chiptune"
 ]
 
@@ -74,8 +82,16 @@ GENRE_HAS_VOCALS = {
     "pop": True,
     "rock": True,
     "electronic": True,
+    "house": True,
+    "techno": False,
+    "trance": True,
+    "dubstep": True,
+    "drum and bass": True,
+    "downtempo": True,
+    "idm": False,
     "lofi": False,
     "jazz": True,
+    "smooth jazz": False,
     "classical": False,
     "ambient": False,
     "country": True,
@@ -95,11 +111,13 @@ GENRE_HAS_VOCALS = {
     "default": True
 }
 
+
 class PlaybackState(Enum):
     STOPPED = auto()
     BUFFERING = auto()
     PLAYING = auto()
     PAUSED = auto()
+
 
 class GenerationState(Enum):
     CLEAN = auto()
@@ -108,6 +126,7 @@ class GenerationState(Enum):
     LYRICS = auto()
     AUDIO = auto()
     IDLE = auto()
+
 
 @dataclass
 class Song:
@@ -125,6 +144,7 @@ class Song:
     intensity: str
     mood: str
     metadata: dict
+
 
 class AIRadioStation:
     def __init__(self, checkpoint_dir: str, ollama_lyrics_model: str = "gemma3:12b-it-q4_K_M", ollama_vision_model: str = "minicpm-v"):
@@ -160,7 +180,7 @@ class AIRadioStation:
         self.user_message = ""
         self.user_message_lock = threading.Lock()
         self.target_duration = DEFAULT_DURATION
-        
+
         # Load user message from file if it exists
         self._load_user_message()
 
@@ -185,7 +205,7 @@ class AIRadioStation:
                     print(f"📝 Loaded: {self.user_message}")
         except Exception as e:
             print(f"⚠️  Error loading user message: {e}")
-    
+
     def _save_user_message(self):
         """Save user message to file"""
         try:
@@ -193,7 +213,7 @@ class AIRadioStation:
                 f.write(self.user_message)
         except Exception as e:
             print(f"⚠️  Error saving user message: {e}")
-    
+
     def _cleanup_output_folder(self):
         """Clean up all files in the output folder on startup"""
         try:
@@ -414,8 +434,8 @@ class AIRadioStation:
         raise RuntimeError("Failed to generate valid parameters from screen after 10 attempts.")
 
     def generate_prompts(self, genre: str, theme: str, duration: float,
-                                    language: str, tempo: int, intensity: str,
-                                    mood: str) -> Tuple[str, str]:
+                         language: str, tempo: int, intensity: str,
+                         mood: str) -> Tuple[str, str]:
         """Generate lyrics using Ollama"""
 
         long_structures = {
@@ -457,6 +477,60 @@ class AIRadioStation:
                 "[Build-Up]\n{lyrics}\n\n"
                 "[Drop]\n{lyrics}\n\n"
                 "[Outro] (beat fade, instrumental)"
+            ),
+            "house": (
+                "[Four-on-Floor Intro] (16 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Pre-Drop Build]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Piano Break] (8 bars, instrumental)\n\n"
+                "[Final Drop] (with vocals, instrumental)"
+            ),
+            "trance": (
+                "[Ambient Intro] (16 bars, instrumental)\n\n"
+                "[Verse 1] (with pad buildup)\n{lyrics}\n\n"
+                "[Breakdown] (emotional, instrumental)\n\n"
+                "[Build-Up] (tension)\n{lyrics}\n\n"
+                "[Drop/Chorus] (euphoric)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Breakdown] (instrumental)\n\n"
+                "[Final Build] (epic tension)\n{lyrics}\n\n"
+                "[Final Drop] (climactic, instrumental)"
+            ),
+            "dubstep": (
+                "[Atmospheric Intro] (8 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Build-Up] (tension rises)\n{lyrics}\n\n"
+                "[Drop] (heavy wobbles, instrumental)\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (second drop, instrumental)\n\n"
+                "[Bridge] (half-time)\n{lyrics}\n\n"
+                "[Final Drop] (biggest drop, instrumental)"
+            ),
+            "drum and bass": (
+                "[Ambient Intro] (8 bars, instrumental)\n\n"
+                "[Verse 1] (with breaks)\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (full breakbeat, instrumental)\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (second drop, instrumental)\n\n"
+                "[Bridge] (atmospheric)\n{lyrics}\n\n"
+                "[Final Drop] (rolling drums, instrumental)"
+            ),
+            "downtempo": (
+                "[Ambient Intro] (instrumental)\n\n"
+                "[Verse 1] (with beats)\n{lyrics}\n\n"
+                "[Chorus] (melodic)\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Instrumental Break] (atmospheric, instrumental)\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Chorus] (with layers, instrumental)"
             ),
             "jazz": (
                 "[Piano Intro] (improvised, instrumental)\n\n"
@@ -564,6 +638,52 @@ class AIRadioStation:
                 "[Breakdown]\n{lyrics}\n\n"
                 "[Build-Up]\n{lyrics}\n\n"
                 "[Drop] (final, instrumental)"
+            ),
+            "house": (
+                "[Four-on-Floor Intro] (8 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "trance": (
+                "[Intro] (8 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Breakdown] (instrumental)\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Final Build]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "dubstep": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (instrumental)\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "drum and bass": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (instrumental)\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "downtempo": (
+                "[Ambient Intro] (instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Chorus] (instrumental)"
             ),
             "jazz": (
                 "[Piano Intro]\n\n"
@@ -719,6 +839,45 @@ class AIRadioStation:
                 "[Breakdown]\n{lyrics}\n\n"
                 "[Drop] (final, instrumental)"
             ),
+            "house": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "trance": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop/Chorus]\n{lyrics}\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "dubstep": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (instrumental)\n\n"
+                "[Bridge]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "drum and bass": (
+                "[Intro] (4 bars, instrumental)\n\n"
+                "[Verse]\n{lyrics}\n\n"
+                "[Build-Up]\n{lyrics}\n\n"
+                "[Drop] (instrumental)\n\n"
+                "[Breakdown]\n{lyrics}\n\n"
+                "[Final Drop] (instrumental)"
+            ),
+            "downtempo": (
+                "[Ambient Intro] (instrumental)\n\n"
+                "[Verse 1]\n{lyrics}\n\n"
+                "[Chorus]\n{lyrics}\n\n"
+                "[Verse 2]\n{lyrics}\n\n"
+                "[Final Chorus] (instrumental)"
+            ),
             "jazz": (
                 "[Piano Intro] (instrumental)\n\n"
                 "[Verse 1]\n{lyrics}\n\n"
@@ -832,8 +991,16 @@ class AIRadioStation:
             "pop": "radio-ready, catchy hooks, polished production",
             "rock": "electric guitars, driving drums, raw energy",
             "electronic": "synthesizers, pulsing bass, euphoric drops",
+            "house": "four-on-floor beat, piano stabs, uplifting vocals, club energy",
+            "techno": "hypnotic rhythms, minimal melodies, driving kick, industrial textures",
+            "trance": "euphoric melodies, layered synths, emotional buildups, atmospheric pads",
+            "dubstep": "heavy bass wobbles, aggressive drops, glitchy effects, half-time drums",
+            "drum and bass": "fast breakbeats, deep sub-bass, energetic, rolling percussion",
+            "downtempo": "laid-back beats, warm synths, atmospheric, chill grooves",
+            "idm": "experimental rhythms, glitchy textures, complex arrangements, cerebral",
             "lofi": "chill beats, vinyl crackle, relaxed vibe",
             "jazz": "smooth saxophone, walking bass, improvisational solos",
+            "smooth jazz": "silky melodies, mellow saxophone, gentle piano, relaxing grooves",
             "classical": "orchestral arrangements, dynamic phrasing, emotional depth",
             "ambient": "atmospheric pads, subtle textures, immersive soundscapes",
             "country": "steel guitar, fiddle, storytelling, twangy vocals",
@@ -890,9 +1057,9 @@ class AIRadioStation:
         )
 
         audio_prompt = f"{genre} music ({prompt_addons.get(genre.lower(), prompt_addons['default'])}), {mood} mood ({mood_modifiers.get(mood, mood_modifiers['upbeat'])}), {intensity} intensity ({intensity_modifiers.get(intensity, intensity_modifiers['medium'])}), {tempo} BPM, Theme: {theme}"
-        
+
         return prompt, audio_prompt
-    
+
     def generate_lyrics_with_ollama(self, prompt: str) -> str:
         """Generate lyrics using Ollama"""
 
@@ -1124,7 +1291,7 @@ class AIRadioStation:
         self.current_song = song
         self.playback_state = PlaybackState.PLAYING
 
-        description = f"{song.mood.title()}, {song.tempo} BPM, {song.intensity.title()} Intensity" 
+        description = f"{song.mood.title()}, {song.tempo} BPM, {song.intensity.title()} Intensity"
         bars = "=" * max(len(song.title), len(description))
         print(f"\n{bars}")
         print(f"{song.title}")
@@ -1279,14 +1446,14 @@ class AIRadioStation:
         """Toggle pause/unpause"""
         if self.playback_state == PlaybackState.PLAYING:
             self.pause_event.set()
-    
+
     def increase_volume(self):
         """Increase volume by 10%"""
         with self.playback_lock:
             self.volume = min(1.0, self.volume + 0.1)
             pygame.mixer.music.set_volume(self.volume)
             print(f"🔊 {int(self.volume * 100)}%")
-    
+
     def decrease_volume(self):
         """Decrease volume by 10%"""
         with self.playback_lock:
@@ -1299,7 +1466,7 @@ class AIRadioStation:
         with self.duration_lock:
             self.target_duration = max(min(240.0, self.target_duration + 10.0), 30.0)
             print(f"⏱️ {int(self.target_duration)}s")
-    
+
     def decrease_duration(self):
         """Decrease target song duration by 10 seconds"""
         with self.duration_lock:
@@ -1351,6 +1518,7 @@ class AIRadioStation:
                 tty.setcbreak(sys.stdin.fileno())
             except Exception:
                 pass
+
 
 class KeyboardHandler:
     def __init__(self, radio: AIRadioStation):

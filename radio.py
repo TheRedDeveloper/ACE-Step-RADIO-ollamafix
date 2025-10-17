@@ -1261,26 +1261,16 @@ Everything feels right"""
         """Background worker for continuous playback"""
         print("🔊 Playback worker started")
 
-        buffering_shown = False
-
         while not self.stop_event.is_set():
             try:
-                # Wait for a song
-                if self.state == RadioState.BUFFERING:
-                    if not buffering_shown:
-                        print("⏳ Waiting for songs to be generated...")
-                        buffering_shown = True
-
-                try:
-                    song = self.song_queue.get(timeout=5)
-                    buffering_shown = False  # Reset for next time
-                except queue.Empty:
-                    continue
+                self.state = RadioState.BUFFERING
+                song = self.song_queue.get(block=True)
 
                 if self.stop_event.is_set():
                     break
 
                 # Play the song
+                self.state = RadioState.PLAYING
                 self._play_song(song)
 
             except Exception as e:

@@ -1,9 +1,14 @@
+# Better ACE Step Radio
 
----
+A better ace-step radio that uses your screen to generate music on the fly with AI 100% locally, with tons of genres, ollama support, a nice tui interface and more!
 
+Just install the python dependecies and run `python radio.py` you'll get a nice terminal interface.
 
+Ollama might take some time to download the models at first. You can see what's happening live in the interface.
 
+Only supports linux. Sorry, make a fork or something for mac or windows.
 
+# Orignial radio docs
 
 https://github.com/user-attachments/assets/f733ebdb-7fe4-4812-b6b2-ac95e48bed55
 

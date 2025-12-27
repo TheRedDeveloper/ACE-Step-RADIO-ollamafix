@@ -25,6 +25,8 @@ import select
 import sys
 import tty
 import termios
+from rich.console import Console
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 from acestep.pipeline_ace_step import ACEStepPipeline
 
@@ -127,6 +129,7 @@ class GenerationState(Enum):
     AUDIO = auto()
     IDLE = auto()
 
+
 class VocalPolicy(Enum):
     NORMAL = auto()
     VOCALONLY = auto()
@@ -187,6 +190,7 @@ class AIRadioStation:
         self.playback_thread = None
         self.playback_history = []
         self.last_genres = []
+        self.last_themes = []
         self.output_dir = Path("outputs")
         self.output_dir.mkdir(exist_ok=True)
         self.user_message_file = Path("user_message.txt")
@@ -321,6 +325,7 @@ class AIRadioStation:
             f"This is the playback history: ... {', '.join(self.playback_history)}, [ YOUR SONG ]\n"
             "Do not base yourself on the playback history. Come up with something different, based on the screenshot.\n"
             "Too much of one genre becomes straining. Do not repeat a genre 3 times, there are so many creative possibilities.\n"
+            "Do not repeat the same theme as in the last songs.\n"
             "This does not hint at the music taste, the songs were not chosen by the user.\n"
         ) if self.playback_history else ""
 
@@ -369,7 +374,7 @@ class AIRadioStation:
         self.generation_state = GenerationState.IDEA
         if self.playback_state == PlaybackState.BUFFERING:
             print("💭 Inventing song...")
-        for _ in range(10):
+        for _ in range(20):
             try:
                 output = ollama.generate(
                     self.ollama_vision_model,
@@ -416,6 +421,8 @@ class AIRadioStation:
                         continue
                     if "vocals" in params["theme"].lower():
                         continue  # This breaks the music ai
+                    if any(params["theme"].lower() == t.lower() for t in self.last_themes):
+                        continue
                     if not (40 <= params["tempo"] <= 200):
                         continue
 
@@ -1083,7 +1090,7 @@ class AIRadioStation:
             "trance": 100,
             "dubstep": 100,
             "drum and bass": 100,
-            "downtempo": 90,
+            "downtempo": 70,
             "jazz": 80,
             "country": 90,
             "metal": 100,
@@ -1113,6 +1120,7 @@ class AIRadioStation:
             f"6. DO NOT surpass {int(duration * max_wpm / 60)} words, so use less than {int(duration * max_wpm / 60 / structure.count('{lyrics}'))} words per section.\n"
             f"7. Use AT LEAST {int(duration * min_wpm / 60)} words, so use more than {int(duration * min_wpm / 60 / structure.count('{lyrics}'))} words per section.\n"
             "8. Never include any text outside the {lyrics} structure. DO NOT touch instrumental sections, only the {lyrics} parts, do not include the text \"{lyrics}\" itself.\n\n"
+            "9. DO NOT add any instrument descriptions, annotations or notes between (parentheses) anywhere. ONLY write lyrics."
             "STYLE GUIDELINES:\n"
             f"- {prompt_addons.get(genre.lower(), prompt_addons['default'])}\n"
             f"- {intensity_modifiers.get(intensity, intensity_modifiers['medium'])} feel\n"
@@ -1301,6 +1309,9 @@ class AIRadioStation:
                 self.last_genres.append(params["genre"])
                 if len(self.last_genres) > 3:
                     self.last_genres = self.last_genres[-3:]
+                self.last_themes.append(params["theme"])
+                if len(self.last_themes) > 3:
+                    self.last_themes = self.last_themes[-3:]
 
                 # Generate song
                 song = self.generate_song(**params)
@@ -1472,7 +1483,7 @@ class AIRadioStation:
         self.playback_thread.start()
 
         print("✅ Radio started successfully!")
-        print("[N] skip | [R] restart | [P] pause/unpause | [+/-] volume ~ [I] edit message | [</>] duration | [V] vocal policy ~ [Q] quit\n")
+        print("[N] skip | [R] restart | [P] pause/unpause | [+/-] volume | [T] progress ~ [I] edit message | [</>] duration | [V] vocal policy ~ [Q] quit\n")
 
     def stop(self):
         """Stop the radio station"""
@@ -1551,6 +1562,48 @@ class AIRadioStation:
                 print("🎤 With Vocals Only")
             case VocalPolicy.NOVOCALS:
                 print("🎤 Instrumental Only")
+
+    def show_progress(self):
+        """Display current playback progress with a progress bar"""
+        if self.playback_state != PlaybackState.PLAYING or self.current_song is None:
+            print("⏸️  No song currently playing")
+            return
+
+        with self.playback_lock:
+            # Get current position in milliseconds
+            current_pos_ms = pygame.mixer.music.get_pos()
+
+            # If paused, get_pos() still returns the position
+            if current_pos_ms < 0:
+                current_pos_ms = 0
+
+            # Convert to seconds
+            current_pos = current_pos_ms / 1000.0
+            total_duration = self.current_song.duration
+
+            # Calculate progress
+            if total_duration > 0:
+                progress_value = min(current_pos, total_duration)
+            else:
+                progress_value = 0.0
+
+            # Format times
+            current_time_str = f"{int(current_pos // 60):02d}:{int(current_pos % 60):02d}"
+            total_time_str = f"{int(total_duration // 60):02d}:{int(total_duration % 60):02d}"
+
+            # Create a rich console
+            console = Console()
+
+            # Display progress bar using rich
+            with Progress(
+                TextColumn("⏱️  "),
+                BarColumn(bar_width=40, complete_style="cyan", finished_style="green"),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                console=console,
+                transient=False
+            ) as progress:
+                task = progress.add_task("", total=total_duration, completed=progress_value)
+                console.print(f"    {current_time_str} / {total_time_str}")
 
     def edit_user_message(self):
         """Edit the user message for personalized music generation"""
@@ -1632,6 +1685,8 @@ class KeyboardHandler:
                         self.radio.increase_duration()
                     elif char == 'v':
                         self.radio.change_vocal_policy()
+                    elif char == 't':
+                        self.radio.show_progress()
                     elif char == 'q':
                         print("\n👋 Quitting...")
                         self.running = False
